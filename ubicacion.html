@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body, #map { height:100%; width:100%; overflow:hidden; }
+    #instruccion {
+      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.72); color: white; padding: 8px 18px;
+      border-radius: 20px; font-size: 13px; z-index: 1000; white-space: nowrap;
+    }
+    #btnConfirmar {
+      position: absolute; bottom: 80px; left: 16px; right: 16px;
+      height: 52px; background: #1a1a2e; color: white; font-size: 16px;
+      font-weight: 700; border: none; border-radius: 14px; cursor: pointer;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="instruccion">📍 Arrastrá el pin a la ubicación exacta</div>
+  <div id="map"></div>
+  <button id="btnConfirmar">✓ Confirmar ubicación</button>
+  <script>
+    var params = new URLSearchParams(window.location.search);
+    var lat = parseFloat(params.get('lat')) || -34.6037;
+    var lng = parseFloat(params.get('lng')) || -58.3816;
+
+    var map = L.map('map', { zoomControl: false }).setView([lat, lng], 17);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: ''
+    }).addTo(map);
+
+    var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+    marker.on('dragend', function(e) {
+      var pos = e.target.getLatLng();
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ lat: pos.lat, lng: pos.lng }));
+      }
+    });
+
+    document.getElementById('btnConfirmar').addEventListener('click', function() {
+      var pos = marker.getLatLng();
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ lat: pos.lat, lng: pos.lng }));
+      }
+    });
+  </script>
+</body>
+</html>
