@@ -40,11 +40,8 @@
     var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
 
     marker.on('dragend', function(e) {
-      var pos = e.target.getLatLng();
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ lat: pos.lat, lng: pos.lng }));
-      }
-    });
+  // Solo actualiza la posición interna, no confirma
+});
 
     document.getElementById('btnConfirmar').addEventListener('click', function() {
       var pos = marker.getLatLng();
