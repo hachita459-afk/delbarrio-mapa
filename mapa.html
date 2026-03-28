@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body, #map { height:100%; width:100%; overflow:hidden; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    // Leer parámetros de la URL
+    var params = new URLSearchParams(window.location.search);
+    var lat = parseFloat(params.get('lat')) || -34.6037;
+    var lng = parseFloat(params.get('lng')) || -58.3816;
+    var localesRaw = params.get('locales');
+    var locales = [];
+    try { locales = JSON.parse(decodeURIComponent(localesRaw || '[]')); } catch(e) {}
+
+    var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: ''
+    }).addTo(map);
+
+    // Pin del usuario
+    var userIcon = L.divIcon({
+      html: '<div style="width:18px;height:18px;background:#22c55e;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(34,197,94,0.3);"></div>',
+      iconSize: [18, 18], iconAnchor: [9, 9], className: ''
+    });
+    L.marker([lat, lng], { icon: userIcon }).addTo(map);
+
+    // Pines de locales
+    var localIcon = L.divIcon({
+      html: '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
+      iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+
+    locales.forEach(function(l) {
+      if (l.lat && l.lng) {
+        L.marker([l.lat, l.lng], { icon: localIcon }).addTo(map)
+          .bindPopup(
+            '<div style="text-align:center;padding:8px;min-width:160px;">' +
+              '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
+              '<small style="color:#888;">' + l.categoria + '</small><br><br>' +
+              '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" ' +
+              'style="background:#2563eb;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:14px;">Ver local</button>' +
+            '</div>'
+          );
+      }
+    });
+  </script>
+</body>
+</html>
