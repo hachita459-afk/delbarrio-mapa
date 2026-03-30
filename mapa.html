@@ -8,12 +8,25 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body, #map { height:100%; width:100%; overflow:hidden; }
+
+    @keyframes pulse {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      50%  { transform: scale(1.5); opacity: 0.3; }
+      100% { transform: scale(1);   opacity: 0.8; }
+    }
+    .pin-novedad-ring {
+      position: absolute;
+      top: -5px; left: -5px;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: rgba(251, 146, 60, 0.5);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <script>
-    // Leer parámetros de la URL
     var params = new URLSearchParams(window.location.search);
     var lat = parseFloat(params.get('lat')) || -34.6037;
     var lng = parseFloat(params.get('lng')) || -58.3816;
@@ -22,7 +35,6 @@
     try { locales = JSON.parse(decodeURIComponent(localesRaw || '[]')); } catch(e) {}
 
     var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
-
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       attribution: ''
@@ -36,23 +48,40 @@
     L.marker([lat, lng], { icon: userIcon }).addTo(map);
 
     // Pines de locales
-    var localIcon = L.divIcon({
-      html: '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
-      iconSize: [14, 14], iconAnchor: [7, 7], className: ''
-    });
-
     locales.forEach(function(l) {
-      if (l.lat && l.lng) {
-        L.marker([l.lat, l.lng], { icon: localIcon }).addTo(map)
-          .bindPopup(
-            '<div style="text-align:center;padding:8px;min-width:160px;">' +
-              '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
-              '<small style="color:#888;">' + l.categoria + '</small><br><br>' +
-              '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" ' +
-              'style="background:#2563eb;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:14px;">Ver local</button>' +
-            '</div>'
-          );
-      }
+      if (!l.lat || !l.lng) return;
+
+      var tieneNovedad = l.tiene_novedad === true;
+
+      var pinHtml = tieneNovedad
+        ? '<div style="position:relative;width:14px;height:14px;">' +
+            '<div class="pin-novedad-ring"></div>' +
+            '<div style="width:14px;height:14px;background:#fb923c;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>' +
+          '</div>'
+        : '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>';
+
+      var icono = L.divIcon({
+        html: pinHtml,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+        className: ''
+      });
+
+      var popupColor = tieneNovedad ? '#fb923c' : '#2563eb';
+      var etiquetaNovedad = tieneNovedad
+        ? '<div style="background:#fff3e0;color:#c2410c;font-size:11px;font-weight:600;padding:3px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;">🔔 ¡Novedad!</div><br>'
+        : '';
+
+      L.marker([l.lat, l.lng], { icon: icono }).addTo(map)
+        .bindPopup(
+          '<div style="text-align:center;padding:8px;min-width:160px;">' +
+            etiquetaNovedad +
+            '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
+            '<small style="color:#888;">' + l.categoria + '</small><br><br>' +
+            '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" ' +
+            'style="background:' + popupColor + ';color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:14px;">Ver local</button>' +
+          '</div>'
+        );
     });
   </script>
 </body>
