@@ -323,15 +323,34 @@
     }).join('');
   }
 
+  const ADMIN_ACTION_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co/functions/v1/admin-action';
+
+  async function adminAction(action, id, data = {}) {
+    const res = await fetch(ADMIN_ACTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: ADMIN_PASS, action, id, data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+    return json;
+  }
+
   async function toggleVerificado(id, actual) {
-    const { error } = await db.from('locales').update({ verificado: !actual }).eq('id', id);
-    if (!error) { locales = locales.map(l => l.id === id ? { ...l, verificado: !actual } : l); actualizarStats(); renderTabla(); }
+    try {
+      await adminAction('verificar', id, { verificado: !actual });
+      locales = locales.map(l => l.id === id ? { ...l, verificado: !actual } : l);
+      actualizarStats(); renderTabla();
+    } catch(e) { alert('Error: ' + e.message); }
   }
 
   async function toggleSuspendido(id, actual) {
     const nuevo = !actual;
-    const { error } = await db.from('locales').update({ suspendido: nuevo, activo: !nuevo }).eq('id', id);
-    if (!error) { locales = locales.map(l => l.id === id ? { ...l, suspendido: nuevo, activo: !nuevo } : l); actualizarStats(); renderTabla(); }
+    try {
+      await adminAction(nuevo ? 'suspender' : 'reactivar', id);
+      locales = locales.map(l => l.id === id ? { ...l, suspendido: nuevo, activo: !nuevo } : l);
+      actualizarStats(); renderTabla();
+    } catch(e) { alert('Error: ' + e.message); }
   }
 
   function abrirModal(id, nombre) {
@@ -347,8 +366,11 @@
 
   async function confirmarBorrar() {
     if (!idParaBorrar) return;
-    const { error } = await db.from('locales').delete().eq('id', idParaBorrar);
-    if (!error) { locales = locales.filter(l => l.id !== idParaBorrar); actualizarStats(); renderTabla(); }
+    try {
+      await adminAction('borrar', idParaBorrar);
+      locales = locales.filter(l => l.id !== idParaBorrar);
+      actualizarStats(); renderTabla();
+    } catch(e) { alert('Error: ' + e.message); }
     cerrarModal();
   }
 
