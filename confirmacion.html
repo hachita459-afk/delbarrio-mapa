@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Del Barrio — Confirmación</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8f8f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 48px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .logo {
+      width: 72px;
+      height: 72px;
+      background: #2a9d8f;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .logo-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-pin {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .app-name {
+      font-size: 28px;
+      font-weight: 700;
+      color: #2a9d8f;
+      margin-bottom: 32px;
+    }
+    .emoji { font-size: 56px; margin-bottom: 16px; }
+    .titulo {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 12px;
+    }
+    .texto {
+      font-size: 15px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .error .emoji-icon { font-size: 56px; margin-bottom: 16px; }
+    .badge-ok {
+      display: inline-block;
+      background: #d0f0ec;
+      color: #2a9d8f;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 32px;
+    }
+    .badge-error {
+      display: inline-block;
+      background: #ffe0e0;
+      color: #e63939;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 32px;
+    }
+    .footer {
+      font-size: 13px;
+      color: #aaa;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="logo">
+      <div class="logo-circle">
+        <div class="logo-pin"></div>
+      </div>
+    </div>
+    <div class="app-name">Del Barrio</div>
+    <div class="emoji">⏳</div>
+    <div class="titulo">Verificando...</div>
+    <div class="texto">Estamos confirmando tu cuenta, un momento.</div>
+  </div>
+
+  <script>
+    function mostrarExito() {
+      document.getElementById('card').innerHTML = `
+        <div class="logo">
+          <div class="logo-circle">
+            <div class="logo-pin"></div>
+          </div>
+        </div>
+        <div class="app-name">Del Barrio</div>
+        <div class="emoji">🎉</div>
+        <div class="badge-ok">✓ Email confirmado</div>
+        <div class="titulo">¡Tu cuenta está activa!</div>
+        <div class="texto">
+          Ya podés iniciar sesión en la app Del Barrio con tu email y contraseña para gestionar tu local.
+        </div>
+        <div class="footer">Podés cerrar esta ventana.</div>
+      `;
+    }
+
+    function mostrarError(msg) {
+      document.getElementById('card').innerHTML = `
+        <div class="logo">
+          <div class="logo-circle">
+            <div class="logo-pin"></div>
+          </div>
+        </div>
+        <div class="app-name">Del Barrio</div>
+        <div class="emoji">❌</div>
+        <div class="badge-error">Error de verificación</div>
+        <div class="titulo">No pudimos confirmar tu cuenta</div>
+        <div class="texto">
+          El enlace puede haber expirado o ya fue usado. Intentá registrarte nuevamente desde la app.
+          <br><br><small style="color:#bbb;">${msg || ''}</small>
+        </div>
+        <div class="footer">Podés cerrar esta ventana.</div>
+      `;
+    }
+
+    // Leer el token de la URL (Supabase lo manda como hash o query param)
+    var hash = window.location.hash.substring(1);
+    var params = new URLSearchParams(hash || window.location.search);
+    var type = params.get('type');
+    var accessToken = params.get('access_token');
+    var errorDesc = params.get('error_description');
+
+    if (errorDesc) {
+      mostrarError(decodeURIComponent(errorDesc));
+    } else if (type === 'signup' || type === 'email_change' || accessToken) {
+      mostrarExito();
+    } else {
+      // Esperar un momento por si los params llegan tarde
+      setTimeout(function() {
+        var h = window.location.hash.substring(1);
+        var p = new URLSearchParams(h || window.location.search);
+        if (p.get('access_token') || p.get('type') === 'signup') {
+          mostrarExito();
+        } else {
+          mostrarError('No se encontró un token válido en la URL.');
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
