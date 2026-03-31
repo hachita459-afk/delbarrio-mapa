@@ -47,16 +47,17 @@
       border-radius: 14px;
       padding: 20px 24px;
       flex: 1;
-      min-width: 140px;
+      min-width: 130px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .stat-num { font-size: 32px; font-weight: 800; color: #1a1a2e; }
-    .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
+    .stat-num { font-size: 30px; font-weight: 800; color: #1a1a2e; }
+    .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
 
     .controles {
       padding: 0 24px 16px;
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .tab {
       padding: 10px 20px;
@@ -72,47 +73,65 @@
     }
     .tab.activo { background: #1a1a2e; color: #fff; }
 
-    .tabla-wrap { padding: 0 24px 40px; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    td { padding: 14px 16px; font-size: 14px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
+    .tabla-wrap { padding: 0 24px 40px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 900px; }
+    th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 12px 16px; font-size: 13px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
 
     .badge {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
+      white-space: nowrap;
     }
     .badge-activo { background: #d0f0ec; color: #2a9d8f; }
     .badge-inactivo { background: #f0f0f0; color: #888; }
+    .badge-suspendido { background: #ffe0e0; color: #e63939; }
     .badge-verificado { background: #d4edda; color: #2d6a4f; }
     .badge-pendiente { background: #fff3cd; color: #856404; }
+    .badge-gratis { background: #e8f4fd; color: #1a6fa8; }
+    .badge-mensual { background: #f0e8fd; color: #6a1a8f; }
+    .badge-anual { background: #fde8f0; color: #8f1a4a; }
+    .badge-vencido { background: #ffe0e0; color: #e63939; }
 
-    .btn-verificar {
-      padding: 7px 14px;
+    .acciones { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn {
+      padding: 6px 12px;
       border-radius: 8px;
       border: none;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
-    .btn-verificar.verificado { background: #2d6a4f; color: #fff; }
-    .btn-verificar.pendiente { background: #f0f0f0; color: #555; }
-    .btn-verificar:hover { opacity: 0.85; }
+    .btn:hover { opacity: 0.8; }
+    .btn-verificar { background: #f0f0f0; color: #555; }
+    .btn-verificar.on { background: #2d6a4f; color: #fff; }
+    .btn-suspender { background: #fff3cd; color: #856404; }
+    .btn-suspender.on { background: #ffe0e0; color: #e63939; }
+    .btn-borrar { background: #ffe0e0; color: #e63939; }
 
     .loading { text-align: center; padding: 60px; color: #888; font-size: 15px; }
     .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
 
-    .visitas-bar {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .bar-bg {
-      flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden;
-    }
+    .visitas-bar { display: flex; align-items: center; gap: 6px; }
+    .bar-bg { flex: 1; height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; min-width: 40px; }
     .bar-fill { height: 100%; background: #2a9d8f; border-radius: 3px; }
+
+    /* Modal confirmación borrar */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.visible { display: flex; }
+    .modal { background: #fff; border-radius: 20px; padding: 32px; max-width: 360px; width: 90%; text-align: center; }
+    .modal h2 { font-size: 20px; color: #1a1a2e; margin-bottom: 12px; }
+    .modal p { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-cancelar { background: #f0f0f0; color: #555; }
+    .btn-confirmar { background: #e63939; color: #fff; }
   </style>
 </head>
 <body>
@@ -123,16 +142,21 @@
 </header>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Locales registrados</div></div>
-  <div class="stat"><div class="stat-num" id="stat-activos">—</div><div class="stat-label">Locales activos</div></div>
+  <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Total registrados</div></div>
+  <div class="stat"><div class="stat-num" id="stat-gratis">—</div><div class="stat-label">En período gratis</div></div>
+  <div class="stat"><div class="stat-num" id="stat-mensual">—</div><div class="stat-label">Plan mensual</div></div>
+  <div class="stat"><div class="stat-num" id="stat-anual">—</div><div class="stat-label">Plan anual</div></div>
   <div class="stat"><div class="stat-num" id="stat-verificados">—</div><div class="stat-label">Verificados</div></div>
-  <div class="stat"><div class="stat-num" id="stat-visitas">—</div><div class="stat-label">Visitas totales</div></div>
+  <div class="stat"><div class="stat-num" id="stat-suspendidos">—</div><div class="stat-label">Suspendidos</div></div>
 </div>
 
 <div class="controles">
-  <button class="tab activo" onclick="setTab('todos')">Todos</button>
-  <button class="tab" onclick="setTab('verificados')">✓ Verificados</button>
-  <button class="tab" onclick="setTab('pendientes')">⏳ Pendientes</button>
+  <button class="tab activo" onclick="setTab('todos', event)">Todos</button>
+  <button class="tab" onclick="setTab('gratis', event)">🆓 Período gratis</button>
+  <button class="tab" onclick="setTab('mensual', event)">📅 Plan mensual</button>
+  <button class="tab" onclick="setTab('anual', event)">📆 Plan anual</button>
+  <button class="tab" onclick="setTab('verificados', event)">✓ Verificados</button>
+  <button class="tab" onclick="setTab('suspendidos', event)">🚫 Suspendidos</button>
 </div>
 
 <div class="tabla-wrap">
@@ -141,16 +165,29 @@
       <tr>
         <th>Local</th>
         <th>Categoría</th>
-        <th>Dirección</th>
         <th>Visitas</th>
-        <th>Estado</th>
+        <th>Plan</th>
         <th>Verificado</th>
+        <th>Estado</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="6" class="loading">Cargando...</td></tr>
+      <tr><td colspan="7" class="loading">Cargando...</td></tr>
     </tbody>
   </table>
+</div>
+
+<!-- Modal borrar -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>⚠️ Borrar local</h2>
+    <p id="modal-texto">¿Estás seguro que querés borrar este local? Esta acción no se puede deshacer.</p>
+    <div class="modal-btns">
+      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirmar" onclick="confirmarBorrar()">Borrar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -162,10 +199,25 @@
   let locales = [];
   let tabActual = 'todos';
   let maxVisitas = 1;
+  let idParaBorrar = null;
+
+  function getPlan(l) {
+    const ahora = new Date();
+    if (l.payment_id) {
+      // Tiene pago — determinar si mensual o anual por activated_at
+      // Por simplicidad usamos el campo plan si existe, sino mensual
+      return l.plan || 'mensual';
+    }
+    if (l.free_until && new Date(l.free_until) > ahora) return 'gratis';
+    return 'vencido';
+  }
 
   async function cargar() {
     const { data, error } = await db.from('locales').select('*').order('created_at', { ascending: false });
-    if (error) { document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="sin-datos">Error al cargar datos</td></tr>'; return; }
+    if (error) {
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="sin-datos">Error al cargar datos</td></tr>';
+      return;
+    }
     locales = data || [];
     maxVisitas = Math.max(1, ...locales.map(l => l.visitas || 0));
     actualizarStats();
@@ -173,13 +225,16 @@
   }
 
   function actualizarStats() {
+    const ahora = new Date();
     document.getElementById('stat-total').textContent = locales.length;
-    document.getElementById('stat-activos').textContent = locales.filter(l => l.activo).length;
+    document.getElementById('stat-gratis').textContent = locales.filter(l => !l.payment_id && l.free_until && new Date(l.free_until) > ahora).length;
+    document.getElementById('stat-mensual').textContent = locales.filter(l => l.payment_id && (!l.plan || l.plan === 'mensual')).length;
+    document.getElementById('stat-anual').textContent = locales.filter(l => l.payment_id && l.plan === 'anual').length;
     document.getElementById('stat-verificados').textContent = locales.filter(l => l.verificado).length;
-    document.getElementById('stat-visitas').textContent = locales.reduce((s, l) => s + (l.visitas || 0), 0);
+    document.getElementById('stat-suspendidos').textContent = locales.filter(l => l.suspendido).length;
   }
 
-  function setTab(tab) {
+  function setTab(tab, event) {
     tabActual = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('activo'));
     event.target.classList.add('activo');
@@ -187,12 +242,17 @@
   }
 
   function renderTabla() {
+    const ahora = new Date();
     let filtrados = locales;
+
+    if (tabActual === 'gratis') filtrados = locales.filter(l => !l.payment_id && l.free_until && new Date(l.free_until) > ahora);
+    if (tabActual === 'mensual') filtrados = locales.filter(l => l.payment_id && (!l.plan || l.plan === 'mensual'));
+    if (tabActual === 'anual') filtrados = locales.filter(l => l.payment_id && l.plan === 'anual');
     if (tabActual === 'verificados') filtrados = locales.filter(l => l.verificado);
-    if (tabActual === 'pendientes') filtrados = locales.filter(l => !l.verificado);
+    if (tabActual === 'suspendidos') filtrados = locales.filter(l => l.suspendido);
 
     if (filtrados.length === 0) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="sin-datos">No hay locales en esta categoría</td></tr>';
       return;
     }
 
@@ -200,29 +260,47 @@
       const cats = Array.isArray(l.categoria) ? l.categoria.join(' · ') : (l.categoria || '—');
       const visitas = l.visitas || 0;
       const pct = Math.round((visitas / maxVisitas) * 100);
+      const plan = getPlan(l);
+
+      const planBadge = {
+        gratis: '<span class="badge badge-gratis">🆓 Gratis</span>',
+        mensual: '<span class="badge badge-mensual">📅 Mensual</span>',
+        anual: '<span class="badge badge-anual">📆 Anual</span>',
+        vencido: '<span class="badge badge-vencido">❌ Vencido</span>',
+      }[plan] || '—';
+
+      const estadoBadge = l.suspendido
+        ? '<span class="badge badge-suspendido">🚫 Suspendido</span>'
+        : l.activo
+          ? '<span class="badge badge-activo">Activo</span>'
+          : '<span class="badge badge-inactivo">Inactivo</span>';
+
       return `
         <tr>
-          <td><strong>${l.nombre || '—'}</strong></td>
+          <td><strong>${l.nombre || '—'}</strong><br><small style="color:#aaa">${l.direccion || ''}</small></td>
           <td>${cats}</td>
-          <td>${l.direccion || '—'}</td>
           <td>
             <div class="visitas-bar">
-              <span style="min-width:28px;font-weight:600;">${visitas}</span>
+              <span style="min-width:24px;font-weight:600;">${visitas}</span>
               <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
             </div>
           </td>
+          <td>${planBadge}</td>
           <td>
-            <span class="badge ${l.activo ? 'badge-activo' : 'badge-inactivo'}">
-              ${l.activo ? 'Activo' : 'Inactivo'}
-            </span>
-          </td>
-          <td>
-            <button
-              class="btn-verificar ${l.verificado ? 'verificado' : 'pendiente'}"
-              onclick="toggleVerificado('${l.id}', ${l.verificado})"
-            >
+            <button class="btn btn-verificar ${l.verificado ? 'on' : ''}" onclick="toggleVerificado('${l.id}', ${l.verificado})">
               ${l.verificado ? '✓ Verificado' : 'Pendiente'}
             </button>
+          </td>
+          <td>${estadoBadge}</td>
+          <td>
+            <div class="acciones">
+              <button class="btn btn-suspender ${l.suspendido ? 'on' : ''}" onclick="toggleSuspendido('${l.id}', ${l.suspendido})">
+                ${l.suspendido ? '↩ Reactivar' : '🚫 Suspender'}
+              </button>
+              <button class="btn btn-borrar" onclick="abrirModal('${l.id}', '${(l.nombre || '').replace(/'/g, "\\'")}')">
+                🗑 Borrar
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -230,13 +308,32 @@
   }
 
   async function toggleVerificado(id, actual) {
+    const { error } = await db.from('locales').update({ verificado: !actual }).eq('id', id);
+    if (!error) { locales = locales.map(l => l.id === id ? { ...l, verificado: !actual } : l); actualizarStats(); renderTabla(); }
+  }
+
+  async function toggleSuspendido(id, actual) {
     const nuevo = !actual;
-    const { error } = await db.from('locales').update({ verificado: nuevo }).eq('id', id);
-    if (!error) {
-      locales = locales.map(l => l.id === id ? { ...l, verificado: nuevo } : l);
-      actualizarStats();
-      renderTabla();
-    }
+    const { error } = await db.from('locales').update({ suspendido: nuevo, activo: !nuevo }).eq('id', id);
+    if (!error) { locales = locales.map(l => l.id === id ? { ...l, suspendido: nuevo, activo: !nuevo } : l); actualizarStats(); renderTabla(); }
+  }
+
+  function abrirModal(id, nombre) {
+    idParaBorrar = id;
+    document.getElementById('modal-texto').textContent = `¿Estás seguro que querés borrar "${nombre}"? Esta acción no se puede deshacer.`;
+    document.getElementById('overlay').classList.add('visible');
+  }
+
+  function cerrarModal() {
+    idParaBorrar = null;
+    document.getElementById('overlay').classList.remove('visible');
+  }
+
+  async function confirmarBorrar() {
+    if (!idParaBorrar) return;
+    const { error } = await db.from('locales').delete().eq('id', idParaBorrar);
+    if (!error) { locales = locales.filter(l => l.id !== idParaBorrar); actualizarStats(); renderTabla(); }
+    cerrarModal();
   }
 
   cargar();
