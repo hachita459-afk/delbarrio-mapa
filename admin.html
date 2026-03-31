@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Del Barrio — Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+    }
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: #2a9d8f;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-circle {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-pin { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header span { font-size: 13px; color: #aaa; margin-left: 4px; }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+      padding: 24px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      flex: 1;
+      min-width: 140px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-num { font-size: 32px; font-weight: 800; color: #1a1a2e; }
+    .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
+
+    .controles {
+      padding: 0 24px 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .tab {
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      color: #888;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transition: all 0.15s;
+    }
+    .tab.activo { background: #1a1a2e; color: #fff; }
+
+    .tabla-wrap { padding: 0 24px 40px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 16px; font-size: 14px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-activo { background: #d0f0ec; color: #2a9d8f; }
+    .badge-inactivo { background: #f0f0f0; color: #888; }
+    .badge-verificado { background: #d4edda; color: #2d6a4f; }
+    .badge-pendiente { background: #fff3cd; color: #856404; }
+
+    .btn-verificar {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-verificar.verificado { background: #2d6a4f; color: #fff; }
+    .btn-verificar.pendiente { background: #f0f0f0; color: #555; }
+    .btn-verificar:hover { opacity: 0.85; }
+
+    .loading { text-align: center; padding: 60px; color: #888; font-size: 15px; }
+    .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+
+    .visitas-bar {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .bar-bg {
+      flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; background: #2a9d8f; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-circle"><div class="logo-pin"></div></div></div>
+  <h1>Del Barrio <span>Admin</span></h1>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Locales registrados</div></div>
+  <div class="stat"><div class="stat-num" id="stat-activos">—</div><div class="stat-label">Locales activos</div></div>
+  <div class="stat"><div class="stat-num" id="stat-verificados">—</div><div class="stat-label">Verificados</div></div>
+  <div class="stat"><div class="stat-num" id="stat-visitas">—</div><div class="stat-label">Visitas totales</div></div>
+</div>
+
+<div class="controles">
+  <button class="tab activo" onclick="setTab('todos')">Todos</button>
+  <button class="tab" onclick="setTab('verificados')">✓ Verificados</button>
+  <button class="tab" onclick="setTab('pendientes')">⏳ Pendientes</button>
+</div>
+
+<div class="tabla-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Local</th>
+        <th>Categoría</th>
+        <th>Dirección</th>
+        <th>Visitas</th>
+        <th>Estado</th>
+        <th>Verificado</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="6" class="loading">Cargando...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let locales = [];
+  let tabActual = 'todos';
+  let maxVisitas = 1;
+
+  async function cargar() {
+    const { data, error } = await db.from('locales').select('*').order('created_at', { ascending: false });
+    if (error) { document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="sin-datos">Error al cargar datos</td></tr>'; return; }
+    locales = data || [];
+    maxVisitas = Math.max(1, ...locales.map(l => l.visitas || 0));
+    actualizarStats();
+    renderTabla();
+  }
+
+  function actualizarStats() {
+    document.getElementById('stat-total').textContent = locales.length;
+    document.getElementById('stat-activos').textContent = locales.filter(l => l.activo).length;
+    document.getElementById('stat-verificados').textContent = locales.filter(l => l.verificado).length;
+    document.getElementById('stat-visitas').textContent = locales.reduce((s, l) => s + (l.visitas || 0), 0);
+  }
+
+  function setTab(tab) {
+    tabActual = tab;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('activo'));
+    event.target.classList.add('activo');
+    renderTabla();
+  }
+
+  function renderTabla() {
+    let filtrados = locales;
+    if (tabActual === 'verificados') filtrados = locales.filter(l => l.verificado);
+    if (tabActual === 'pendientes') filtrados = locales.filter(l => !l.verificado);
+
+    if (filtrados.length === 0) {
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      return;
+    }
+
+    document.getElementById('tbody').innerHTML = filtrados.map(l => {
+      const cats = Array.isArray(l.categoria) ? l.categoria.join(' · ') : (l.categoria || '—');
+      const visitas = l.visitas || 0;
+      const pct = Math.round((visitas / maxVisitas) * 100);
+      return `
+        <tr>
+          <td><strong>${l.nombre || '—'}</strong></td>
+          <td>${cats}</td>
+          <td>${l.direccion || '—'}</td>
+          <td>
+            <div class="visitas-bar">
+              <span style="min-width:28px;font-weight:600;">${visitas}</span>
+              <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+            </div>
+          </td>
+          <td>
+            <span class="badge ${l.activo ? 'badge-activo' : 'badge-inactivo'}">
+              ${l.activo ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+          <td>
+            <button
+              class="btn-verificar ${l.verificado ? 'verificado' : 'pendiente'}"
+              onclick="toggleVerificado('${l.id}', ${l.verificado})"
+            >
+              ${l.verificado ? '✓ Verificado' : 'Pendiente'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function toggleVerificado(id, actual) {
+    const nuevo = !actual;
+    const { error } = await db.from('locales').update({ verificado: nuevo }).eq('id', id);
+    if (!error) {
+      locales = locales.map(l => l.id === id ? { ...l, verificado: nuevo } : l);
+      actualizarStats();
+      renderTabla();
+    }
+  }
+
+  cargar();
+</script>
+</body>
+</html>
