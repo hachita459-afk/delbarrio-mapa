@@ -196,6 +196,22 @@
   const { createClient } = supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  const ADMIN_PASS = 'Perlita92@';
+
+  function checkAuth() {
+    if (sessionStorage.getItem('admin_ok') !== '1') {
+      const pass = prompt('🔒 Contraseña de administrador:');
+      if (pass !== ADMIN_PASS) {
+        document.body.innerHTML = '<div style="text-align:center;padding:80px;font-size:18px;color:#e63939;">Acceso denegado.</div>';
+        return false;
+      }
+      sessionStorage.setItem('admin_ok', '1');
+    }
+    return true;
+  }
+
+  if (!checkAuth()) { throw new Error('No autorizado'); }
+
   let locales = [];
   let tabActual = 'todos';
   let maxVisitas = 1;
