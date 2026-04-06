@@ -58,6 +58,7 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
     .tab {
       padding: 10px 20px;
@@ -73,11 +74,48 @@
     }
     .tab.activo { background: #1a1a2e; color: #fff; }
 
+    .search-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 8px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .search-wrap input {
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: #1a1a2e;
+      width: 140px;
+      background: transparent;
+    }
+    .search-wrap input::placeholder { color: #bbb; }
+    .search-wrap button {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      color: #888;
+    }
+    .search-wrap button:hover { color: #1a1a2e; }
+
+    .search-resultado {
+      padding: 0 24px 12px;
+      font-size: 13px;
+      color: #888;
+      font-style: italic;
+    }
+
     .tabla-wrap { padding: 0 24px 40px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 900px; }
     th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 12px 16px; font-size: 13px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
+    tr.highlight td { background: #f0faf9; }
 
     .badge {
       display: inline-block;
@@ -96,6 +134,7 @@
     .badge-mensual { background: #f0e8fd; color: #6a1a8f; }
     .badge-anual { background: #fde8f0; color: #8f1a4a; }
     .badge-vencido { background: #ffe0e0; color: #e63939; }
+    .badge-id { background: #f0f0f0; color: #555; font-family: monospace; font-size: 12px; }
 
     .acciones { display: flex; gap: 6px; flex-wrap: wrap; }
     .btn {
@@ -122,7 +161,6 @@
     .bar-bg { flex: 1; height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; min-width: 40px; }
     .bar-fill { height: 100%; background: #2a9d8f; border-radius: 3px; }
 
-    /* Modal confirmación borrar */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
     .overlay.visible { display: flex; }
     .modal { background: #fff; border-radius: 20px; padding: 32px; max-width: 360px; width: 90%; text-align: center; }
@@ -157,12 +195,27 @@
   <button class="tab" onclick="setTab('anual', event)">📆 Plan anual</button>
   <button class="tab" onclick="setTab('verificados', event)">✓ Verificados</button>
   <button class="tab" onclick="setTab('suspendidos', event)">🚫 Suspendidos</button>
+
+  <div class="search-wrap">
+    <span>🔍</span>
+    <input
+      type="number"
+      id="search-id"
+      placeholder="Buscar por ID..."
+      oninput="buscarPorId()"
+      min="1"
+    />
+    <button onclick="limpiarBusqueda()" title="Limpiar">✕</button>
+  </div>
 </div>
+
+<div class="search-resultado" id="search-resultado" style="display:none"></div>
 
 <div class="tabla-wrap">
   <table>
     <thead>
       <tr>
+        <th>ID</th>
         <th>Local</th>
         <th>Categoría</th>
         <th>Visitas</th>
@@ -173,7 +226,7 @@
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="7" class="loading">Cargando...</td></tr>
+      <tr><td colspan="8" class="loading">Cargando...</td></tr>
     </tbody>
   </table>
 </div>
@@ -216,12 +269,11 @@
   let tabActual = 'todos';
   let maxVisitas = 1;
   let idParaBorrar = null;
+  let busquedaId = '';
 
   function getPlan(l) {
     const ahora = new Date();
     if (l.payment_id) {
-      // Tiene pago — determinar si mensual o anual por activated_at
-      // Por simplicidad usamos el campo plan si existe, sino mensual
       return l.plan || 'mensual';
     }
     if (l.free_until && new Date(l.free_until) > ahora) return 'gratis';
@@ -229,9 +281,9 @@
   }
 
   async function cargar() {
-    const { data, error } = await db.from('locales').select('*').order('created_at', { ascending: false });
+    const { data, error } = await db.from('locales').select('*').order('local_id', { ascending: true });
     if (error) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="sin-datos">Error al cargar datos</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="8" class="sin-datos">Error al cargar datos</td></tr>';
       return;
     }
     locales = data || [];
@@ -252,8 +304,21 @@
 
   function setTab(tab, event) {
     tabActual = tab;
+    limpiarBusqueda();
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('activo'));
     event.target.classList.add('activo');
+    renderTabla();
+  }
+
+  function buscarPorId() {
+    busquedaId = document.getElementById('search-id').value.trim();
+    renderTabla();
+  }
+
+  function limpiarBusqueda() {
+    busquedaId = '';
+    document.getElementById('search-id').value = '';
+    document.getElementById('search-resultado').style.display = 'none';
     renderTabla();
   }
 
@@ -261,14 +326,28 @@
     const ahora = new Date();
     let filtrados = locales;
 
-    if (tabActual === 'gratis') filtrados = locales.filter(l => !l.payment_id && l.free_until && new Date(l.free_until) > ahora);
-    if (tabActual === 'mensual') filtrados = locales.filter(l => l.payment_id && (!l.plan || l.plan === 'mensual'));
-    if (tabActual === 'anual') filtrados = locales.filter(l => l.payment_id && l.plan === 'anual');
-    if (tabActual === 'verificados') filtrados = locales.filter(l => l.verificado);
-    if (tabActual === 'suspendidos') filtrados = locales.filter(l => l.suspendido);
+    // Si hay búsqueda por ID, ignora el tab
+    if (busquedaId !== '') {
+      const idNum = parseInt(busquedaId);
+      filtrados = locales.filter(l => l.local_id === idNum);
+      const res = document.getElementById('search-resultado');
+      if (filtrados.length === 0) {
+        res.textContent = `No se encontró ningún local con ID #${idNum}`;
+      } else {
+        res.textContent = `Resultado para ID #${idNum}: ${filtrados[0].nombre}`;
+      }
+      res.style.display = 'block';
+    } else {
+      document.getElementById('search-resultado').style.display = 'none';
+      if (tabActual === 'gratis') filtrados = locales.filter(l => !l.payment_id && l.free_until && new Date(l.free_until) > ahora);
+      if (tabActual === 'mensual') filtrados = locales.filter(l => l.payment_id && (!l.plan || l.plan === 'mensual'));
+      if (tabActual === 'anual') filtrados = locales.filter(l => l.payment_id && l.plan === 'anual');
+      if (tabActual === 'verificados') filtrados = locales.filter(l => l.verificado);
+      if (tabActual === 'suspendidos') filtrados = locales.filter(l => l.suspendido);
+    }
 
     if (filtrados.length === 0) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="8" class="sin-datos">No hay locales en esta categoría</td></tr>';
       return;
     }
 
@@ -277,6 +356,7 @@
       const visitas = l.visitas || 0;
       const pct = Math.round((visitas / maxVisitas) * 100);
       const plan = getPlan(l);
+      const esResultadoBusqueda = busquedaId !== '';
 
       const planBadge = {
         gratis: '<span class="badge badge-gratis">🆓 Gratis</span>',
@@ -292,7 +372,8 @@
           : '<span class="badge badge-inactivo">Inactivo</span>';
 
       return `
-        <tr>
+        <tr class="${esResultadoBusqueda ? 'highlight' : ''}">
+          <td><span class="badge badge-id">#${l.local_id || '—'}</span></td>
           <td><strong>${l.nombre || '—'}</strong><br><small style="color:#aaa">${l.direccion || ''}</small></td>
           <td>${cats}</td>
           <td>
