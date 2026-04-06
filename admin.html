@@ -111,7 +111,7 @@
     }
 
     .tabla-wrap { padding: 0 24px 40px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 900px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 1000px; }
     th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 12px 16px; font-size: 13px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
@@ -128,8 +128,6 @@
     .badge-activo { background: #d0f0ec; color: #2a9d8f; }
     .badge-inactivo { background: #f0f0f0; color: #888; }
     .badge-suspendido { background: #ffe0e0; color: #e63939; }
-    .badge-verificado { background: #d4edda; color: #2d6a4f; }
-    .badge-pendiente { background: #fff3cd; color: #856404; }
     .badge-gratis { background: #e8f4fd; color: #1a6fa8; }
     .badge-mensual { background: #f0e8fd; color: #6a1a8f; }
     .badge-anual { background: #fde8f0; color: #8f1a4a; }
@@ -153,6 +151,9 @@
     .btn-suspender { background: #fff3cd; color: #856404; }
     .btn-suspender.on { background: #ffe0e0; color: #e63939; }
     .btn-borrar { background: #ffe0e0; color: #e63939; }
+    .btn-extender { background: #e8f4fd; color: #1a6fa8; }
+    .btn-plan-mensual { background: #f0e8fd; color: #6a1a8f; }
+    .btn-plan-anual { background: #fde8f0; color: #8f1a4a; }
 
     .loading { text-align: center; padding: 60px; color: #888; font-size: 15px; }
     .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
@@ -170,6 +171,21 @@
     .modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
     .btn-cancelar { background: #f0f0f0; color: #555; }
     .btn-confirmar { background: #e63939; color: #fff; }
+
+    /* Modal plan */
+    .modal-plan-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .btn-plan-opcion {
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-plan-opcion:hover { opacity: 0.85; }
+    .btn-plan-opcion.mensual { background: #f0e8fd; color: #6a1a8f; }
+    .btn-plan-opcion.anual { background: #fde8f0; color: #8f1a4a; }
   </style>
 </head>
 <body>
@@ -232,14 +248,39 @@
 </div>
 
 <!-- Modal borrar -->
-<div class="overlay" id="overlay">
+<div class="overlay" id="overlay-borrar">
   <div class="modal">
     <h2>⚠️ Borrar local</h2>
-    <p id="modal-texto">¿Estás seguro que querés borrar este local? Esta acción no se puede deshacer.</p>
+    <p id="modal-borrar-texto"></p>
     <div class="modal-btns">
-      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-cancelar" onclick="cerrarModal('borrar')">Cancelar</button>
       <button class="btn-confirmar" onclick="confirmarBorrar()">Borrar</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal extender promo -->
+<div class="overlay" id="overlay-extender">
+  <div class="modal">
+    <h2>📅 Extender período</h2>
+    <p id="modal-extender-texto"></p>
+    <div class="modal-btns">
+      <button class="btn-cancelar" onclick="cerrarModal('extender')">Cancelar</button>
+      <button class="btn-confirmar" style="background:#1a6fa8;" onclick="confirmarExtender()">+30 días</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal activar plan -->
+<div class="overlay" id="overlay-plan">
+  <div class="modal">
+    <h2>💳 Activar plan</h2>
+    <p id="modal-plan-texto"></p>
+    <div class="modal-plan-btns">
+      <button class="btn-plan-opcion mensual" onclick="confirmarPlan('mensual')">📅 Plan mensual</button>
+      <button class="btn-plan-opcion anual" onclick="confirmarPlan('anual')">📆 Plan anual</button>
+    </div>
+    <button class="btn-cancelar" style="width:100%;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;" onclick="cerrarModal('plan')">Cancelar</button>
   </div>
 </div>
 
@@ -269,13 +310,13 @@
   let tabActual = 'todos';
   let maxVisitas = 1;
   let idParaBorrar = null;
+  let idParaExtender = null;
+  let idParaPlan = null;
   let busquedaId = '';
 
   function getPlan(l) {
     const ahora = new Date();
-    if (l.payment_id) {
-      return l.plan || 'mensual';
-    }
+    if (l.payment_id) return l.plan || 'mensual';
     if (l.free_until && new Date(l.free_until) > ahora) return 'gratis';
     return 'vencido';
   }
@@ -322,20 +363,24 @@
     renderTabla();
   }
 
+  function cerrarModal(tipo) {
+    document.getElementById(`overlay-${tipo}`).classList.remove('visible');
+    if (tipo === 'borrar') idParaBorrar = null;
+    if (tipo === 'extender') idParaExtender = null;
+    if (tipo === 'plan') idParaPlan = null;
+  }
+
   function renderTabla() {
     const ahora = new Date();
     let filtrados = locales;
 
-    // Si hay búsqueda por ID, ignora el tab
     if (busquedaId !== '') {
       const idNum = parseInt(busquedaId);
       filtrados = locales.filter(l => l.local_id === idNum);
       const res = document.getElementById('search-resultado');
-      if (filtrados.length === 0) {
-        res.textContent = `No se encontró ningún local con ID #${idNum}`;
-      } else {
-        res.textContent = `Resultado para ID #${idNum}: ${filtrados[0].nombre}`;
-      }
+      res.textContent = filtrados.length === 0
+        ? `No se encontró ningún local con ID #${idNum}`
+        : `Resultado para ID #${idNum}: ${filtrados[0].nombre}`;
       res.style.display = 'block';
     } else {
       document.getElementById('search-resultado').style.display = 'none';
@@ -371,6 +416,8 @@
           ? '<span class="badge badge-activo">Activo</span>'
           : '<span class="badge badge-inactivo">Inactivo</span>';
 
+      const nombreEscapado = (l.nombre || '').replace(/'/g, "\\'");
+
       return `
         <tr class="${esResultadoBusqueda ? 'highlight' : ''}">
           <td><span class="badge badge-id">#${l.local_id || '—'}</span></td>
@@ -391,10 +438,16 @@
           <td>${estadoBadge}</td>
           <td>
             <div class="acciones">
+              <button class="btn btn-extender" onclick="abrirExtender('${l.id}', '${nombreEscapado}', '${l.free_until || ''}')">
+                +30 días
+              </button>
+              <button class="btn btn-plan-mensual" onclick="abrirPlan('${l.id}', '${nombreEscapado}')">
+                💳 Plan
+              </button>
               <button class="btn btn-suspender ${l.suspendido ? 'on' : ''}" onclick="toggleSuspendido('${l.id}', ${l.suspendido})">
                 ${l.suspendido ? '↩ Reactivar' : '🚫 Suspender'}
               </button>
-              <button class="btn btn-borrar" onclick="abrirModal('${l.id}', '${(l.nombre || '').replace(/'/g, "\\'")}')">
+              <button class="btn btn-borrar" onclick="abrirBorrar('${l.id}', '${nombreEscapado}')">
                 🗑 Borrar
               </button>
             </div>
@@ -434,15 +487,11 @@
     } catch(e) { alert('Error: ' + e.message); }
   }
 
-  function abrirModal(id, nombre) {
+  // BORRAR
+  function abrirBorrar(id, nombre) {
     idParaBorrar = id;
-    document.getElementById('modal-texto').textContent = `¿Estás seguro que querés borrar "${nombre}"? Esta acción no se puede deshacer.`;
-    document.getElementById('overlay').classList.add('visible');
-  }
-
-  function cerrarModal() {
-    idParaBorrar = null;
-    document.getElementById('overlay').classList.remove('visible');
+    document.getElementById('modal-borrar-texto').textContent = `¿Estás seguro que querés borrar "${nombre}"? Esta acción no se puede deshacer.`;
+    document.getElementById('overlay-borrar').classList.add('visible');
   }
 
   async function confirmarBorrar() {
@@ -452,7 +501,64 @@
       locales = locales.filter(l => l.id !== idParaBorrar);
       actualizarStats(); renderTabla();
     } catch(e) { alert('Error: ' + e.message); }
-    cerrarModal();
+    cerrarModal('borrar');
+  }
+
+  // EXTENDER PROMO
+  function abrirExtender(id, nombre, freeUntil) {
+    idParaExtender = id;
+    const base = freeUntil && new Date(freeUntil) > new Date() ? new Date(freeUntil) : new Date();
+    const nueva = new Date(base);
+    nueva.setDate(nueva.getDate() + 30);
+    const fechaStr = nueva.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    document.getElementById('modal-extender-texto').textContent = `Extender el período gratis de "${nombre}" por 30 días más. Nuevo vencimiento: ${fechaStr}.`;
+    document.getElementById('overlay-extender').classList.add('visible');
+  }
+
+  async function confirmarExtender() {
+    if (!idParaExtender) return;
+    const local = locales.find(l => l.id === idParaExtender);
+    const base = local?.free_until && new Date(local.free_until) > new Date() ? new Date(local.free_until) : new Date();
+    const nueva = new Date(base);
+    nueva.setDate(nueva.getDate() + 30);
+    try {
+      const { error } = await db.from('locales').update({
+        free_until: nueva.toISOString(),
+        activo: true,
+      }).eq('id', idParaExtender);
+      if (error) throw error;
+      locales = locales.map(l => l.id === idParaExtender ? { ...l, free_until: nueva.toISOString(), activo: true } : l);
+      actualizarStats(); renderTabla();
+      alert('✅ Período extendido correctamente');
+    } catch(e) { alert('Error: ' + e.message); }
+    cerrarModal('extender');
+  }
+
+  // ACTIVAR PLAN
+  function abrirPlan(id, nombre) {
+    idParaPlan = id;
+    document.getElementById('modal-plan-texto').textContent = `Elegí el plan a activar para "${nombre}":`;
+    document.getElementById('overlay-plan').classList.add('visible');
+  }
+
+  async function confirmarPlan(tipoPlan) {
+    if (!idParaPlan) return;
+    try {
+      const { error } = await db.from('locales').update({
+        plan: tipoPlan,
+        payment_id: `manual_${Date.now()}`,
+        activo: true,
+        suspendido: false,
+      }).eq('id', idParaPlan);
+      if (error) throw error;
+      locales = locales.map(l => l.id === idParaPlan
+        ? { ...l, plan: tipoPlan, payment_id: `manual_${Date.now()}`, activo: true, suspendido: false }
+        : l
+      );
+      actualizarStats(); renderTabla();
+      alert(`✅ Plan ${tipoPlan} activado correctamente`);
+    } catch(e) { alert('Error: ' + e.message); }
+    cerrarModal('plan');
   }
 
   cargar();
