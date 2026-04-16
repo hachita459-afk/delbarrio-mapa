@@ -8,13 +8,12 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body, #map { height:100%; width:100%; overflow:hidden; }
-
     @keyframes pulse {
       0%   { transform: scale(1);   opacity: 0.8; }
       50%  { transform: scale(1.5); opacity: 0.3; }
       100% { transform: scale(1);   opacity: 0.8; }
     }
-    .pin-novedad-ring {
+    .pin-nuevo-ring {
       position: absolute;
       top: -5px; left: -5px;
       width: 24px; height: 24px;
@@ -51,14 +50,15 @@
     locales.forEach(function(l) {
       if (!l.lat || !l.lng) return;
 
-      var tieneNovedad = l.tiene_novedad === true;
+      // naranja = no visitado, azul = ya visitado
+      var yaVisitado = l.ya_visitado === true;
 
-      var pinHtml = tieneNovedad
-        ? '<div style="position:relative;width:14px;height:14px;">' +
-            '<div class="pin-novedad-ring"></div>' +
+      var pinHtml = yaVisitado
+        ? '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>'
+        : '<div style="position:relative;width:14px;height:14px;">' +
+            '<div class="pin-nuevo-ring"></div>' +
             '<div style="width:14px;height:14px;background:#fb923c;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>' +
-          '</div>'
-        : '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>';
+          '</div>';
 
       var icono = L.divIcon({
         html: pinHtml,
@@ -67,15 +67,11 @@
         className: ''
       });
 
-      var popupColor = tieneNovedad ? '#fb923c' : '#2563eb';
-      var etiquetaNovedad = tieneNovedad
-        ? '<div style="background:#fff3e0;color:#c2410c;font-size:11px;font-weight:600;padding:3px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;">🔔 ¡Novedad!</div><br>'
-        : '';
+      var popupColor = yaVisitado ? '#2563eb' : '#fb923c';
 
       L.marker([l.lat, l.lng], { icon: icono }).addTo(map)
         .bindPopup(
           '<div style="text-align:center;padding:8px;min-width:160px;">' +
-            etiquetaNovedad +
             '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
             '<small style="color:#888;">' + l.categoria + '</small><br><br>' +
             '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" ' +
