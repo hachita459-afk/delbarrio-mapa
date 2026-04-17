@@ -18,7 +18,7 @@
       top: -5px; left: -5px;
       width: 24px; height: 24px;
       border-radius: 50%;
-background: rgba(255, 0, 0, 0.5);
+      background: rgba(255, 0, 0, 0.5);
       animation: pulse 1.4s ease-in-out infinite;
     }
   </style>
@@ -32,42 +32,35 @@ background: rgba(255, 0, 0, 0.5);
     var localesRaw = params.get('locales');
     var locales = [];
     try { locales = JSON.parse(decodeURIComponent(localesRaw || '[]')); } catch(e) {}
-
     var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       attribution: ''
     }).addTo(map);
-
     // Pin del usuario
     var userIcon = L.divIcon({
       html: '<div style="width:18px;height:18px;background:#22c55e;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(34,197,94,0.3);"></div>',
       iconSize: [18, 18], iconAnchor: [9, 9], className: ''
     });
     L.marker([lat, lng], { icon: userIcon }).addTo(map);
-
     // Pines de locales
     locales.forEach(function(l) {
       if (!l.lat || !l.lng) return;
-
-      // naranja = no visitado, azul = ya visitado
+      // rojo = no visitado (test), azul = ya visitado
       var yaVisitado = l.ya_visitado === true;
-
       var pinHtml = yaVisitado
         ? '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>'
         : '<div style="position:relative;width:14px;height:14px;">' +
             '<div class="pin-nuevo-ring"></div>' +
-'<div style="width:14px;height:14px;background:#ff0000;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>'          '</div>';
-
+            '<div style="width:14px;height:14px;background:#ff0000;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>' +
+          '</div>';
       var icono = L.divIcon({
         html: pinHtml,
         iconSize: [14, 14],
         iconAnchor: [7, 7],
         className: ''
       });
-
-      var popupColor = yaVisitado ? '#2563eb' : '#fb923c';
-
+      var popupColor = yaVisitado ? '#2563eb' : '#ff0000';
       L.marker([l.lat, l.lng], { icon: icono }).addTo(map)
         .bindPopup(
           '<div style="text-align:center;padding:8px;min-width:160px;">' +
