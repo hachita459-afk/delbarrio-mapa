@@ -172,7 +172,6 @@
     .btn-cancelar { background: #f0f0f0; color: #555; }
     .btn-confirmar { background: #e63939; color: #fff; }
 
-    /* Modal plan */
     .modal-plan-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
     .btn-plan-opcion {
       padding: 14px;
@@ -328,6 +327,14 @@
       return;
     }
     locales = data || [];
+
+    // Traer emails de profiles
+    const ownerIds = locales.map(l => l.owner_id).filter(Boolean);
+    const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', ownerIds);
+    const emailMap = {};
+    if (profiles) profiles.forEach(p => emailMap[p.id] = p.full_name);
+    locales = locales.map(l => ({ ...l, email: emailMap[l.owner_id] || '—' }));
+
     maxVisitas = Math.max(1, ...locales.map(l => l.visitas || 0));
     actualizarStats();
     renderTabla();
@@ -421,7 +428,11 @@
       return `
         <tr class="${esResultadoBusqueda ? 'highlight' : ''}">
           <td><span class="badge badge-id">#${l.local_id || '—'}</span></td>
-          <td><strong>${l.nombre || '—'}</strong><br><small style="color:#aaa">${l.direccion || ''}</small></td>
+          <td>
+            <strong>${l.nombre || '—'}</strong><br>
+            <small style="color:#aaa">${l.direccion || ''}</small><br>
+            <small style="color:#2a9d8f">${l.email}</small>
+          </td>
           <td>${cats}</td>
           <td>
             <div class="visitas-bar">
@@ -487,7 +498,6 @@
     } catch(e) { alert('Error: ' + e.message); }
   }
 
-  // BORRAR
   function abrirBorrar(id, nombre) {
     idParaBorrar = id;
     document.getElementById('modal-borrar-texto').textContent = `¿Estás seguro que querés borrar "${nombre}"? Esta acción no se puede deshacer.`;
@@ -504,7 +514,6 @@
     cerrarModal('borrar');
   }
 
-  // EXTENDER PROMO
   function abrirExtender(id, nombre, freeUntil) {
     idParaExtender = id;
     const base = freeUntil && new Date(freeUntil) > new Date() ? new Date(freeUntil) : new Date();
@@ -534,7 +543,6 @@
     cerrarModal('extender');
   }
 
-  // ACTIVAR PLAN
   function abrirPlan(id, nombre) {
     idParaPlan = id;
     document.getElementById('modal-plan-texto').textContent = `Elegí el plan a activar para "${nombre}":`;
