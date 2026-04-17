@@ -47,7 +47,7 @@
     locales.forEach(function(l) {
       if (!l.lat || !l.lng) return;
       // rojo = no visitado (test), azul = ya visitado
-      var yaVisitado = l.ya_visitado === true;
+var yaVisitado = l.ya_visitado === true || l.ya_visitado === 'true' || l.ya_visitado == true;
       var pinHtml = yaVisitado
         ? '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>'
         : '<div style="position:relative;width:14px;height:14px;">' +
