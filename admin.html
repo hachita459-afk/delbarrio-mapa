@@ -366,26 +366,6 @@
   </div>
 </div>
 
-<div class="grafico-seccion">
-  <div class="grafico-header">
-    <span class="grafico-titulo">📊 Visitas al mapa</span>
-    <div class="grafico-controles">
-      <select id="grafico-periodo" onchange="cargarGrafico()">
-        <option value="dia">Últimos 30 días</option>
-        <option value="semana">Últimas 12 semanas</option>
-        <option value="mes">Últimos 12 meses</option>
-      </select>
-      <select id="grafico-barrio" onchange="cargarGrafico()">
-        <option value="">Todos los barrios</option>
-      </select>
-    </div>
-  </div>
-  <div class="grafico-box">
-    <div class="grafico-loading" id="grafico-loading">Cargando gráfico...</div>
-    <canvas id="grafico-canvas" style="display:none"></canvas>
-  </div>
-</div>
-
 <div class="controles">
   <button class="tab activo" onclick="setTab('todos', event)">Todos</button>
   <button class="tab" onclick="setTab('gratis', event)">🆓 Período gratis</button>
@@ -549,7 +529,7 @@
       }));
       renderTabla(); // actualiza la tabla con los barrios detectados
       actualizarSelectBarrios();
-      actualizarSelectBarriosGrafico();
+      actualizarSelectBarrioGrafico();
       if (i + LOTE < lista.length) {
         await new Promise(r => setTimeout(r, DELAY));
       }
@@ -848,170 +828,6 @@
 
   // ── Gráfico de visitas ──────────────────────────────────────────────────────
   let graficoInstance = null;
-
-  async function cargarGrafico() {
-    const periodo = document.getElementById('grafico-periodo').value;
-    const barrio  = document.getElementById('grafico-barrio').value;
-
-    document.getElementById('grafico-loading').style.display = 'flex';
-    document.getElementById('grafico-canvas').style.display  = 'none';
-
-    // Calcular rango de fechas
-    const ahora = new Date();
-    let desde = new Date();
-    if (periodo === 'dia')    desde.setDate(ahora.getDate() - 30);
-    if (periodo === 'semana') desde.setDate(ahora.getDate() - 84);
-    if (periodo === 'mes')    desde.setFullYear(ahora.getFullYear() - 1);
-
-    // Traer visitas del rango
-    let query = db
-      .from('visitas_app')
-      .select('fecha, local_id')
-      .gte('fecha', desde.toISOString())
-      .order('fecha', { ascending: true });
-
-    // Filtrar por barrio si corresponde (join con locales usando ids cacheados)
-    let localIdsFiltrados = null;
-    if (barrio) {
-      localIdsFiltrados = locales
-        .filter(l => barriosCache[l.id] === barrio)
-        .map(l => l.id);
-      if (localIdsFiltrados.length === 0) {
-        renderGrafico([], [], periodo);
-        return;
-      }
-      query = query.in('local_id', localIdsFiltrados);
-    }
-
-    const { data, error } = await query;
-    if (error || !data) {
-      document.getElementById('grafico-loading').textContent = 'Error al cargar datos';
-      return;
-    }
-
-    // Agrupar por período
-    const conteo = {};
-
-    data.forEach(v => {
-      const fecha = new Date(v.fecha);
-      let key;
-      if (periodo === 'dia') {
-        key = fecha.toISOString().slice(0, 10); // YYYY-MM-DD
-      } else if (periodo === 'semana') {
-        // Lunes de esa semana
-        const d = new Date(fecha);
-        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-        key = d.toISOString().slice(0, 10);
-      } else {
-        key = fecha.toISOString().slice(0, 7); // YYYY-MM
-      }
-      conteo[key] = (conteo[key] || 0) + 1;
-    });
-
-    // Generar eje X completo (sin huecos)
-    const labels = [];
-    const valores = [];
-    const cursor = new Date(desde);
-
-    while (cursor <= ahora) {
-      let key;
-      if (periodo === 'dia') {
-        key = cursor.toISOString().slice(0, 10);
-        cursor.setDate(cursor.getDate() + 1);
-      } else if (periodo === 'semana') {
-        const d = new Date(cursor);
-        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-        key = d.toISOString().slice(0, 10);
-        cursor.setDate(cursor.getDate() + 7);
-      } else {
-        key = cursor.toISOString().slice(0, 7);
-        cursor.setMonth(cursor.getMonth() + 1);
-      }
-      if (!labels.includes(key)) {
-        labels.push(key);
-        valores.push(conteo[key] || 0);
-      }
-    }
-
-    renderGrafico(labels, valores, periodo);
-  }
-
-  function formatLabel(key, periodo) {
-    if (periodo === 'mes') {
-      const [y, m] = key.split('-');
-      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      return meses[parseInt(m) - 1] + ' ' + y;
-    }
-    if (periodo === 'semana') {
-      const d = new Date(key + 'T00:00:00');
-      return `${d.getDate()}/${d.getMonth() + 1}`;
-    }
-    // dia
-    const d = new Date(key + 'T00:00:00');
-    return `${d.getDate()}/${d.getMonth() + 1}`;
-  }
-
-  function renderGrafico(labels, valores, periodo) {
-    document.getElementById('grafico-loading').style.display = 'none';
-    const canvas = document.getElementById('grafico-canvas');
-    canvas.style.display = 'block';
-
-    if (graficoInstance) {
-      graficoInstance.destroy();
-      graficoInstance = null;
-    }
-
-    const ctx = canvas.getContext('2d');
-    graficoInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels.map(l => formatLabel(l, periodo)),
-        datasets: [{
-          label: 'Visitas',
-          data: valores,
-          backgroundColor: 'rgba(42, 157, 143, 0.7)',
-          borderColor: '#2a9d8f',
-          borderWidth: 1,
-          borderRadius: 4,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: items => formatLabel(labels[items[0].dataIndex], periodo),
-              label: item => ` ${item.raw} visita${item.raw === 1 ? '' : 's'}`,
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: 11 }, maxRotation: 45 }
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { precision: 0, font: { size: 11 } },
-            grid: { color: '#f0f0f0' }
-          }
-        }
-      }
-    });
-  }
-
-  function actualizarSelectBarriosGrafico() {
-    const barrios = [...new Set(
-      Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—')
-    )].sort();
-    const select = document.getElementById('grafico-barrio');
-    const valorActual = select.value;
-    select.innerHTML = '<option value="">Todos los barrios</option>' +
-      barrios.map(b => `<option value="${b}" ${b === valorActual ? 'selected' : ''}>${b}</option>`).join('');
-  }
-  // ────────────────────────────────────────────────────────────────────────────
 
   // ── Direcciones bloqueadas ──────────────────────────────────────────────────
   let direccionesBloqueadas = [];
