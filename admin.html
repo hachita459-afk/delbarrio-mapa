@@ -262,6 +262,45 @@
     }
     .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
 
+    .bloqueadas-seccion {
+      padding: 0 24px 24px;
+    }
+    .bloqueadas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .bloqueadas-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .bloqueadas-box {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .bloqueadas-vacia { padding: 24px; text-align: center; color: #aaa; font-size: 14px; }
+    .bloqueada-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .bloqueada-row:last-child { border-bottom: none; }
+    .bloqueada-dir { font-size: 14px; color: #1a1a2e; font-weight: 600; }
+    .bloqueada-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .btn-desbloquear {
+      padding: 6px 14px; border-radius: 8px; border: none;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      background: #d0f0ec; color: #2a9d8f; white-space: nowrap;
+    }
+    .btn-desbloquear:hover { opacity: 0.8; }
+    .btn-bloquear-dir { background: #ffe0e0; color: #e63939; }
+
     .visitas-bar { display: flex; align-items: center; gap: 6px; }
     .bar-bg { flex: 1; height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; min-width: 40px; }
     .bar-fill { height: 100%; background: #2a9d8f; border-radius: 3px; }
@@ -396,6 +435,15 @@
       <tr><td colspan="9" class="loading">Cargando...</td></tr>
     </tbody>
   </table>
+</div>
+
+<div class="bloqueadas-seccion">
+  <div class="bloqueadas-header">
+    <span class="bloqueadas-titulo">🚫 Direcciones bloqueadas</span>
+  </div>
+  <div class="bloqueadas-box" id="bloqueadas-lista">
+    <div class="bloqueadas-vacia">Cargando...</div>
+  </div>
 </div>
 
 <!-- Modal borrar -->
@@ -538,6 +586,7 @@
     actualizarStats();
     renderTabla();
     cargarGrafico();
+    cargarDireccionesBloqueadas();
 
     // Detectar barrios en segundo plano
     detectarBarriosEnLotes(locales);
@@ -685,6 +734,9 @@
               </button>
               <button class="btn btn-borrar" onclick="abrirBorrar('${l.id}', '${nombreEscapado}')">
                 🗑 Borrar
+              </button>
+              <button class="btn btn-bloquear-dir" onclick="bloquearDireccion('${l.id}', '${(l.direccion || '').replace(/'/g, "\\'")}', '${nombreEscapado}')">
+                🚫 Bloquear dir.
               </button>
             </div>
           </td>
@@ -958,6 +1010,69 @@
     const valorActual = select.value;
     select.innerHTML = '<option value="">Todos los barrios</option>' +
       barrios.map(b => `<option value="${b}" ${b === valorActual ? 'selected' : ''}>${b}</option>`).join('');
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // ── Direcciones bloqueadas ──────────────────────────────────────────────────
+  let direccionesBloqueadas = [];
+
+  async function cargarDireccionesBloqueadas() {
+    const { data } = await db
+      .from('direcciones_bloqueadas')
+      .select('*')
+      .order('created_at', { ascending: false });
+    direccionesBloqueadas = data || [];
+    renderDireccionesBloqueadas();
+  }
+
+  function renderDireccionesBloqueadas() {
+    const cont = document.getElementById('bloqueadas-lista');
+    if (direccionesBloqueadas.length === 0) {
+      cont.innerHTML = '<div class="bloqueadas-vacia">No hay direcciones bloqueadas</div>';
+      return;
+    }
+    cont.innerHTML = direccionesBloqueadas.map(d => `
+      <div class="bloqueada-row">
+        <div>
+          <div class="bloqueada-dir">📍 ${d.direccion}</div>
+          <div class="bloqueada-meta">Bloqueada el ${new Date(d.created_at).toLocaleDateString('es-AR')}${d.motivo ? ' · ' + d.motivo : ''}</div>
+        </div>
+        <button class="btn-desbloquear" onclick="desbloquearDireccion(${d.id}, '${d.direccion.replace(/'/g, "\\'")}')">
+          ✅ Desbloquear
+        </button>
+      </div>
+    `).join('');
+  }
+
+  async function bloquearDireccion(localId, direccion, nombreLocal) {
+    if (!direccion) { alert('Este local no tiene dirección cargada.'); return; }
+    const confirmar = confirm(`¿Bloquear la dirección "${direccion}"?\n\nEsto impedirá que se registren nuevos locales en esa dirección.\n\nLocal: ${nombreLocal}`);
+    if (!confirmar) return;
+    try {
+      const { error } = await db.from('direcciones_bloqueadas').insert({
+        direccion: direccion.trim(),
+        motivo: `Local: ${nombreLocal}`,
+        local_id: localId,
+      });
+      if (error && error.code === '23505') {
+        alert('Esta dirección ya está bloqueada.');
+        return;
+      }
+      if (error) throw error;
+      await cargarDireccionesBloqueadas();
+      alert(`✅ Dirección bloqueada correctamente.`);
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function desbloquearDireccion(id, direccion) {
+    const confirmar = confirm(`¿Desbloquear "${direccion}"?\n\nEsta dirección volverá a poder registrar nuevos locales.`);
+    if (!confirmar) return;
+    try {
+      const { error } = await db.from('direcciones_bloqueadas').delete().eq('id', id);
+      if (error) throw error;
+      await cargarDireccionesBloqueadas();
+      alert('✅ Dirección desbloqueada.');
+    } catch(e) { alert('Error: ' + e.message); }
   }
   // ────────────────────────────────────────────────────────────────────────────
 
