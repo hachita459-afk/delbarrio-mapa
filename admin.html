@@ -74,6 +74,26 @@
     }
     .tab.activo { background: #1a1a2e; color: #fff; }
 
+    .filtro-barrio-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 8px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .filtro-barrio-wrap label { font-size: 13px; color: #888; white-space: nowrap; }
+    .filtro-barrio-wrap select {
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: transparent;
+      cursor: pointer;
+      max-width: 160px;
+    }
+
     .search-wrap {
       margin-left: auto;
       display: flex;
@@ -110,8 +130,12 @@
       font-style: italic;
     }
 
+    .barrio-loading { color: #bbb; font-style: italic; font-size: 12px; }
+    .barrio-ok { color: #2a9d8f; font-weight: 600; font-size: 12px; }
+    .barrio-error { color: #e63939; font-size: 12px; }
+
     .tabla-wrap { padding: 0 24px 40px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 1000px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 1100px; }
     th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 12px 16px; font-size: 13px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
@@ -211,6 +235,13 @@
   <button class="tab" onclick="setTab('verificados', event)">✓ Verificados</button>
   <button class="tab" onclick="setTab('suspendidos', event)">🚫 Suspendidos</button>
 
+  <div class="filtro-barrio-wrap">
+    <label>🏘 Barrio:</label>
+    <select id="filtro-barrio" onchange="renderTabla()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+
   <div class="search-wrap">
     <span>🔍</span>
     <input
@@ -232,6 +263,7 @@
       <tr>
         <th>ID</th>
         <th>Local</th>
+        <th>Barrio</th>
         <th>Categoría</th>
         <th>Visitas</th>
         <th>Plan</th>
@@ -241,7 +273,7 @@
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="8" class="loading">Cargando...</td></tr>
+      <tr><td colspan="9" class="loading">Cargando...</td></tr>
     </tbody>
   </table>
 </div>
@@ -306,6 +338,7 @@
   if (!checkAuth()) { throw new Error('No autorizado'); }
 
   let locales = [];
+  let barriosCache = {}; // id -> nombre barrio
   let tabActual = 'todos';
   let maxVisitas = 1;
   let idParaBorrar = null;
@@ -320,15 +353,60 @@
     return 'vencido';
   }
 
+  // ── Nominatim: detectar barrio por coordenadas ──────────────────────────────
+  async function detectarBarrio(lat, lng) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json&accept-language=es`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'DelBarrioAdmin/1.0' } });
+      const data = await res.json();
+      const addr = data.address || {};
+      // Nominatim devuelve el barrio en distintos campos según la ciudad
+      return addr.neighbourhood || addr.suburb || addr.quarter || addr.city_district || addr.district || '—';
+    } catch (e) {
+      return '—';
+    }
+  }
+
+  async function detectarBarriosEnLotes(lista) {
+    const LOTE = 3;
+    const DELAY = 1100; // ms entre lotes para respetar límite de Nominatim (1 req/seg)
+    for (let i = 0; i < lista.length; i += LOTE) {
+      const lote = lista.slice(i, i + LOTE);
+      await Promise.all(lote.map(async (l) => {
+        if (!l.lat || !l.lng || barriosCache[l.id] !== undefined) return;
+        barriosCache[l.id] = 'cargando';
+        renderTabla(); // muestra spinner mientras carga
+        const barrio = await detectarBarrio(l.lat, l.lng);
+        barriosCache[l.id] = barrio;
+      }));
+      renderTabla(); // actualiza la tabla con los barrios detectados
+      actualizarSelectBarrios();
+      if (i + LOTE < lista.length) {
+        await new Promise(r => setTimeout(r, DELAY));
+      }
+    }
+  }
+
+  function actualizarSelectBarrios() {
+    const barrios = [...new Set(
+      Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—')
+    )].sort();
+    const select = document.getElementById('filtro-barrio');
+    const valorActual = select.value;
+    select.innerHTML = '<option value="">Todos</option>' +
+      barrios.map(b => `<option value="${b}" ${b === valorActual ? 'selected' : ''}>${b}</option>`).join('');
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   async function cargar() {
     const { data, error } = await db.from('locales').select('*').order('local_id', { ascending: true });
     if (error) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="8" class="sin-datos">Error al cargar datos</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="sin-datos">Error al cargar datos</td></tr>';
       return;
     }
     locales = data || [];
 
-    // Traer emails de profiles
+    // Traer nombres de profiles
     const ownerIds = locales.map(l => l.owner_id).filter(Boolean);
     const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', ownerIds);
     const emailMap = {};
@@ -338,6 +416,9 @@
     maxVisitas = Math.max(1, ...locales.map(l => l.visitas || 0));
     actualizarStats();
     renderTabla();
+
+    // Detectar barrios en segundo plano
+    detectarBarriosEnLotes(locales);
   }
 
   function actualizarStats() {
@@ -379,6 +460,7 @@
 
   function renderTabla() {
     const ahora = new Date();
+    const filtroBa = document.getElementById('filtro-barrio').value;
     let filtrados = locales;
 
     if (busquedaId !== '') {
@@ -398,8 +480,13 @@
       if (tabActual === 'suspendidos') filtrados = locales.filter(l => l.suspendido);
     }
 
+    // Filtro por barrio
+    if (filtroBa) {
+      filtrados = filtrados.filter(l => barriosCache[l.id] === filtroBa);
+    }
+
     if (filtrados.length === 0) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="8" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="sin-datos">No hay locales en esta categoría</td></tr>';
       return;
     }
 
@@ -409,6 +496,21 @@
       const pct = Math.round((visitas / maxVisitas) * 100);
       const plan = getPlan(l);
       const esResultadoBusqueda = busquedaId !== '';
+
+      // Barrio
+      const barrioVal = barriosCache[l.id];
+      let barrioHtml;
+      if (!l.lat || !l.lng) {
+        barrioHtml = '<span style="color:#bbb;font-size:12px;">Sin coords</span>';
+      } else if (barrioVal === undefined) {
+        barrioHtml = '<span class="barrio-loading">Pendiente...</span>';
+      } else if (barrioVal === 'cargando') {
+        barrioHtml = '<span class="barrio-loading">Detectando...</span>';
+      } else if (barrioVal === '—') {
+        barrioHtml = '<span class="barrio-error">No detectado</span>';
+      } else {
+        barrioHtml = `<span class="barrio-ok">📍 ${barrioVal}</span>`;
+      }
 
       const planBadge = {
         gratis: '<span class="badge badge-gratis">🆓 Gratis</span>',
@@ -433,6 +535,7 @@
             <small style="color:#aaa">${l.direccion || ''}</small><br>
             <small style="color:#2a9d8f">${l.email}</small>
           </td>
+          <td>${barrioHtml}</td>
           <td>${cats}</td>
           <td>
             <div class="visitas-bar">
