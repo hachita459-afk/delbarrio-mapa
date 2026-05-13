@@ -524,12 +524,12 @@
   // ── Nominatim: detectar barrio por coordenadas ──────────────────────────────
   async function detectarBarrio(lat, lng) {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json&accept-language=es`;
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`;
       const res = await fetch(url, { headers: { 'User-Agent': 'DelBarrioAdmin/1.0' } });
       const data = await res.json();
       const addr = data.address || {};
-      // Nominatim devuelve el barrio en distintos campos según la ciudad
-      return addr.neighbourhood || addr.suburb || addr.quarter || addr.city_district || addr.district || '—';
+      // Para CABA: neighbourhood > suburb > quarter > city_district > borough > district
+      return addr.neighbourhood || addr.suburb || addr.quarter || addr.city_district || addr.borough || addr.district || '—';
     } catch (e) {
       return '—';
     }
