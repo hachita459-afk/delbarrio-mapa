@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Del Barrio — Recorrido</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 1000;
+      position: relative;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 32px; height: 32px;
+      background: #2a9d8f;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-circle {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-pin { width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+    header h1 { font-size: 16px; font-weight: 700; }
+    header span { font-size: 12px; color: #aaa; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-tool {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-dibujar { background: #2a9d8f; color: #fff; }
+    .btn-dibujar.activo { background: #fff; color: #2a9d8f; box-shadow: 0 0 0 2px #2a9d8f; }
+    .btn-borrar-ultimo { background: #fff3cd; color: #856404; }
+    .btn-borrar-todo { background: #ffe0e0; color: #e63939; }
+
+    .info-bar {
+      background: #fff;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #666;
+      border-bottom: 1px solid #eee;
+      z-index: 999;
+      position: relative;
+    }
+    .info-dot { width: 12px; height: 12px; border-radius: 50%; background: #e63939; display: inline-block; margin-right: 4px; }
+    .km-counter { font-weight: 700; color: #1a1a2e; }
+
+    #map {
+      width: 100%;
+      height: calc(100vh - 94px);
+      cursor: crosshair;
+    }
+    #map.modo-normal { cursor: grab; }
+
+    .cursor-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 2000;
+      transition: opacity 0.3s;
+    }
+    .cursor-hint.oculto { opacity: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo"><div class="logo-circle"><div class="logo-pin"></div></div></div>
+    <div>
+      <h1>Del Barrio <span>— Recorrido</span></h1>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="btn-tool btn-dibujar activo" id="btn-dibujar" onclick="toggleModo()">✏️ Dibujando</button>
+    <button class="btn-tool btn-borrar-ultimo" onclick="borrarUltimo()">↩ Deshacer</button>
+    <button class="btn-tool btn-borrar-todo" onclick="borrarTodo()">🗑 Borrar todo</button>
+  </div>
+</header>
+
+<div class="info-bar">
+  <span><span class="info-dot"></span> Trazos: <span class="km-counter" id="contador-trazos">0</span></span>
+  <span>Distancia recorrida: <span class="km-counter" id="contador-km">0.0 km</span></span>
+  <span style="margin-left:auto;color:#aaa;font-size:12px;">Los trazos se guardan automáticamente</span>
+</div>
+
+<div id="map"></div>
+<div class="cursor-hint" id="cursor-hint">✏️ Hacé click y arrastrá para marcar calles</div>
+
+<script>
+  const ADMIN_PASS = 'Perlita92@';
+  const STORAGE_KEY = 'delbarrio_recorrido_trazos';
+
+  function checkAuth() {
+    if (sessionStorage.getItem('recorrido_ok') !== '1') {
+      const pass = prompt('🔒 Contraseña:');
+      if (pass !== ADMIN_PASS) {
+        document.body.innerHTML = '<div style="text-align:center;padding:80px;font-size:18px;color:#e63939;">Acceso denegado.</div>';
+        return false;
+      }
+      sessionStorage.setItem('recorrido_ok', '1');
+    }
+    return true;
+  }
+
+  if (!checkAuth()) throw new Error('No autorizado');
+
+  // ── Mapa ────────────────────────────────────────────────────────────────────
+  const map = L.map('map', { zoomControl: true }).setView([-34.6060, -58.4270], 15);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: ''
+  }).addTo(map);
+
+  // ── Estado ──────────────────────────────────────────────────────────────────
+  let mododibujo = true;
+  let dibujando = false;
+  let puntoActual = [];
+  let polilineaActual = null;
+  let trazos = []; // array de L.Polyline
+
+  // ── Cargar trazos guardados ─────────────────────────────────────────────────
+  function cargarTrazos() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      data.forEach(puntos => {
+        const poly = L.polyline(puntos, { color: '#e63939', weight: 4, opacity: 0.8 }).addTo(map);
+        trazos.push(poly);
+      });
+      actualizarContadores();
+    } catch(e) {}
+  }
+
+  function guardarTrazos() {
+    const data = trazos.map(p => p.getLatLngs().map(ll => [ll.lat, ll.lng]));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function actualizarContadores() {
+    document.getElementById('contador-trazos').textContent = trazos.length;
+    let totalMetros = 0;
+    trazos.forEach(poly => {
+      const pts = poly.getLatLngs();
+      for (let i = 1; i < pts.length; i++) {
+        totalMetros += pts[i-1].distanceTo(pts[i]);
+      }
+    });
+    const km = (totalMetros / 1000).toFixed(1);
+    document.getElementById('contador-km').textContent = km + ' km';
+  }
+
+  // ── Dibujo con mouse ────────────────────────────────────────────────────────
+  map.on('mousedown', function(e) {
+    if (!mododibujo) return;
+    dibujando = true;
+    puntoActual = [[e.latlng.lat, e.latlng.lng]];
+    polilineaActual = L.polyline(puntoActual, { color: '#e63939', weight: 4, opacity: 0.8 }).addTo(map);
+    map.dragging.disable();
+  });
+
+  map.on('mousemove', function(e) {
+    if (!dibujando || !mododibujo) return;
+    puntoActual.push([e.latlng.lat, e.latlng.lng]);
+    polilineaActual.setLatLngs(puntoActual);
+  });
+
+  map.on('mouseup', function() {
+    if (!dibujando || !mododibujo) return;
+    dibujando = false;
+    map.dragging.enable();
+    if (puntoActual.length > 1) {
+      trazos.push(polilineaActual);
+      guardarTrazos();
+      actualizarContadores();
+    } else {
+      map.removeLayer(polilineaActual);
+    }
+    polilineaActual = null;
+    puntoActual = [];
+  });
+
+  // ── Dibujo táctil ───────────────────────────────────────────────────────────
+  const mapEl = document.getElementById('map');
+
+  mapEl.addEventListener('touchstart', function(e) {
+    if (!mododibujo) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const latlng = map.containerPointToLatLng([touch.clientX, touch.clientY - mapEl.getBoundingClientRect().top]);
+    dibujando = true;
+    puntoActual = [[latlng.lat, latlng.lng]];
+    polilineaActual = L.polyline(puntoActual, { color: '#e63939', weight: 5, opacity: 0.85 }).addTo(map);
+    map.dragging.disable();
+  }, { passive: false });
+
+  mapEl.addEventListener('touchmove', function(e) {
+    if (!dibujando || !mododibujo) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const latlng = map.containerPointToLatLng([touch.clientX, touch.clientY - mapEl.getBoundingClientRect().top]);
+    puntoActual.push([latlng.lat, latlng.lng]);
+    polilineaActual.setLatLngs(puntoActual);
+  }, { passive: false });
+
+  mapEl.addEventListener('touchend', function(e) {
+    if (!dibujando || !mododibujo) return;
+    e.preventDefault();
+    dibujando = false;
+    map.dragging.enable();
+    if (puntoActual.length > 1) {
+      trazos.push(polilineaActual);
+      guardarTrazos();
+      actualizarContadores();
+    } else {
+      map.removeLayer(polilineaActual);
+    }
+    polilineaActual = null;
+    puntoActual = [];
+  }, { passive: false });
+
+  // ── Controles ───────────────────────────────────────────────────────────────
+  function toggleModo() {
+    mododibujo = !mododibujo;
+    const btn = document.getElementById('btn-dibujar');
+    const mapDiv = document.getElementById('map');
+    if (mododibujo) {
+      btn.textContent = '✏️ Dibujando';
+      btn.classList.add('activo');
+      mapDiv.classList.remove('modo-normal');
+      map.dragging.enable();
+    } else {
+      btn.textContent = '🖐 Navegar';
+      btn.classList.remove('activo');
+      mapDiv.classList.add('modo-normal');
+      map.dragging.enable();
+    }
+  }
+
+  function borrarUltimo() {
+    if (trazos.length === 0) return;
+    const ultimo = trazos.pop();
+    map.removeLayer(ultimo);
+    guardarTrazos();
+    actualizarContadores();
+  }
+
+  function borrarTodo() {
+    if (trazos.length === 0) return;
+    if (!confirm('¿Borrar todos los trazos? Esta acción no se puede deshacer.')) return;
+    trazos.forEach(p => map.removeLayer(p));
+    trazos = [];
+    guardarTrazos();
+    actualizarContadores();
+  }
+
+  // ── Hint inicial ────────────────────────────────────────────────────────────
+  const hint = document.getElementById('cursor-hint');
+  setTimeout(() => hint.classList.add('oculto'), 4000);
+
+  // ── Init ────────────────────────────────────────────────────────────────────
+  cargarTrazos();
+</script>
+</body>
+</html>
