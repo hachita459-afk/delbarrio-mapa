@@ -6,186 +6,62 @@
   <title>Del Barrio — Admin</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f0f4f8;
-      min-height: 100vh;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
 
-    /* ── Gráfico ── */
-    .grafico-section {
-      padding: 0 24px 24px;
-    }
-    .grafico-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .grafico-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .grafico-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .grafico-controles { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .grafico-controles select, .grafico-controles button {
-      padding: 8px 14px;
-      border-radius: 20px;
-      border: 1px solid #eee;
-      font-size: 13px;
-      font-weight: 600;
-      background: #f8f8f8;
-      color: #1a1a2e;
-      cursor: pointer;
-      outline: none;
-    }
-    .grafico-controles button.activo { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
-    .grafico-wrap { position: relative; height: 260px; }
-    .grafico-loading { text-align: center; padding: 80px; color: #aaa; font-size: 14px; }
-    header {
-      background: #1a1a2e;
-      color: #fff;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .logo {
-      width: 36px; height: 36px;
-      background: #2a9d8f;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .logo-circle {
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      display: flex; align-items: center; justify-content: center;
-    }
+    header { background: #1a1a2e; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    .logo { width: 36px; height: 36px; background: #2a9d8f; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo-circle { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; }
     .logo-pin { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
     header h1 { font-size: 18px; font-weight: 700; }
     header span { font-size: 13px; color: #aaa; margin-left: 4px; }
 
-    .stats {
-      display: flex;
-      gap: 16px;
-      padding: 24px;
-      flex-wrap: wrap;
-    }
-    .stat {
-      background: #fff;
-      border-radius: 14px;
-      padding: 20px 24px;
-      flex: 1;
-      min-width: 130px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
+    .stats { display: flex; gap: 16px; padding: 24px; flex-wrap: wrap; }
+    .stat { background: #fff; border-radius: 14px; padding: 20px 24px; flex: 1; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .stat-num { font-size: 30px; font-weight: 800; color: #1a1a2e; }
     .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
 
-    .controles {
-      padding: 0 24px 16px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .tab {
-      padding: 10px 20px;
-      border-radius: 20px;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #fff;
-      color: #888;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      transition: all 0.15s;
-    }
+    /* GRÁFICO */
+    .grafico-section { padding: 0 24px 24px; }
+    .grafico-card { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .grafico-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .grafico-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .grafico-controles { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .grafico-controles select, .grafico-controles button { padding: 8px 14px; border-radius: 20px; border: 1px solid #eee; font-size: 13px; font-weight: 600; background: #f8f8f8; color: #1a1a2e; cursor: pointer; outline: none; }
+    .grafico-controles button.activo { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+    .grafico-wrap { position: relative; height: 260px; }
+    .grafico-loading { text-align: center; padding: 80px; color: #aaa; font-size: 14px; }
+
+    /* CONTROLES */
+    .controles { padding: 0 24px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .tab { padding: 10px 20px; border-radius: 20px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #888; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.15s; }
     .tab.activo { background: #1a1a2e; color: #fff; }
 
-    .filtro-barrio-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border-radius: 20px;
-      padding: 8px 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
+    .filtro-barrio-wrap { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 20px; padding: 8px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
     .filtro-barrio-wrap label { font-size: 13px; color: #888; white-space: nowrap; }
-    .filtro-barrio-wrap select {
-      border: none;
-      outline: none;
-      font-size: 14px;
-      color: #1a1a2e;
-      background: transparent;
-      cursor: pointer;
-      max-width: 160px;
-    }
+    .filtro-barrio-wrap select { border: none; outline: none; font-size: 14px; color: #1a1a2e; background: transparent; cursor: pointer; max-width: 160px; }
 
-    .search-wrap {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border-radius: 20px;
-      padding: 8px 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-    .search-wrap input {
-      border: none;
-      outline: none;
-      font-size: 14px;
-      color: #1a1a2e;
-      width: 140px;
-      background: transparent;
-    }
+    .search-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 20px; padding: 8px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .search-wrap input { border: none; outline: none; font-size: 14px; color: #1a1a2e; width: 140px; background: transparent; }
     .search-wrap input::placeholder { color: #bbb; }
-    .search-wrap button {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 0;
-      color: #888;
-    }
+    .search-wrap button { border: none; background: none; cursor: pointer; font-size: 16px; padding: 0; color: #888; }
     .search-wrap button:hover { color: #1a1a2e; }
+    .search-resultado { padding: 0 24px 12px; font-size: 13px; color: #888; font-style: italic; }
 
-    .search-resultado {
-      padding: 0 24px 12px;
-      font-size: 13px;
-      color: #888;
-      font-style: italic;
-    }
-
+    /* TABLA */
     .barrio-loading { color: #bbb; font-style: italic; font-size: 12px; }
     .barrio-ok { color: #2a9d8f; font-weight: 600; font-size: 12px; }
     .barrio-error { color: #e63939; font-size: 12px; }
 
     .tabla-wrap { padding: 0 24px 40px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 1100px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 1200px; }
     th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 12px 16px; font-size: 13px; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
     tr.highlight td { background: #f0faf9; }
 
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
     .badge-activo { background: #d0f0ec; color: #2a9d8f; }
     .badge-inactivo { background: #f0f0f0; color: #888; }
     .badge-suspendido { background: #ffe0e0; color: #e63939; }
@@ -195,17 +71,20 @@
     .badge-vencido { background: #ffe0e0; color: #e63939; }
     .badge-id { background: #f0f0f0; color: #555; font-family: monospace; font-size: 12px; }
 
+    /* ACTIVIDAD */
+    .actividad-wrap { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .actividad-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .actividad-verde .actividad-dot { background: #22c55e; }
+    .actividad-amarillo .actividad-dot { background: #f59e0b; }
+    .actividad-rojo .actividad-dot { background: #e63939; }
+    .actividad-gris .actividad-dot { background: #ccc; }
+    .actividad-verde { color: #2d6a4f; }
+    .actividad-amarillo { color: #856404; }
+    .actividad-rojo { color: #e63939; }
+    .actividad-gris { color: #aaa; }
+
     .acciones { display: flex; gap: 6px; flex-wrap: wrap; }
-    .btn {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
+    .btn { padding: 6px 12px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .btn:hover { opacity: 0.8; }
     .btn-verificar { background: #f0f0f0; color: #555; }
     .btn-verificar.on { background: #2d6a4f; color: #fff; }
@@ -214,97 +93,30 @@
     .btn-borrar { background: #ffe0e0; color: #e63939; }
     .btn-extender { background: #e8f4fd; color: #1a6fa8; }
     .btn-plan-mensual { background: #f0e8fd; color: #6a1a8f; }
-    .btn-plan-anual { background: #fde8f0; color: #8f1a4a; }
-
-    .grafico-seccion {
-      padding: 0 24px 24px;
-    }
-    .grafico-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .grafico-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .grafico-controles { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .grafico-controles select {
-      padding: 8px 14px;
-      border-radius: 20px;
-      border: none;
-      font-size: 13px;
-      font-weight: 600;
-      background: #fff;
-      color: #1a1a2e;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      cursor: pointer;
-      outline: none;
-    }
-    .grafico-box {
-      background: #fff;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      position: relative;
-      height: 260px;
-    }
-    .grafico-loading {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      color: #aaa;
-      background: #fff;
-      border-radius: 14px;
-    }
-    .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
-
-    .bloqueadas-seccion {
-      padding: 0 24px 24px;
-    }
-    .bloqueadas-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .bloqueadas-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .bloqueadas-box {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      overflow: hidden;
-    }
-    .bloqueadas-vacia { padding: 24px; text-align: center; color: #aaa; font-size: 14px; }
-    .bloqueada-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid #f0f0f0;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .bloqueada-row:last-child { border-bottom: none; }
-    .bloqueada-dir { font-size: 14px; color: #1a1a2e; font-weight: 600; }
-    .bloqueada-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
-    .btn-desbloquear {
-      padding: 6px 14px; border-radius: 8px; border: none;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      background: #d0f0ec; color: #2a9d8f; white-space: nowrap;
-    }
-    .btn-desbloquear:hover { opacity: 0.8; }
     .btn-bloquear-dir { background: #ffe0e0; color: #e63939; }
+    .act-verde { color: #2d6a4f; font-weight: 600; font-size: 12px; }
+    .act-amarillo { color: #856404; font-weight: 600; font-size: 12px; }
+    .act-rojo { color: #e63939; font-weight: 600; font-size: 12px; }
+    .act-nunca { color: #bbb; font-size: 12px; }
 
     .visitas-bar { display: flex; align-items: center; gap: 6px; }
     .bar-bg { flex: 1; height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; min-width: 40px; }
     .bar-fill { height: 100%; background: #2a9d8f; border-radius: 3px; }
 
+    /* BLOQUEADAS */
+    .bloqueadas-seccion { padding: 0 24px 24px; }
+    .bloqueadas-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .bloqueadas-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .bloqueadas-box { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+    .bloqueadas-vacia { padding: 24px; text-align: center; color: #aaa; font-size: 14px; }
+    .bloqueada-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; gap: 12px; flex-wrap: wrap; }
+    .bloqueada-row:last-child { border-bottom: none; }
+    .bloqueada-dir { font-size: 14px; color: #1a1a2e; font-weight: 600; }
+    .bloqueada-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .btn-desbloquear { padding: 6px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; background: #d0f0ec; color: #2a9d8f; white-space: nowrap; }
+    .btn-desbloquear:hover { opacity: 0.8; }
+
+    /* MODALES */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
     .overlay.visible { display: flex; }
     .modal { background: #fff; border-radius: 20px; padding: 32px; max-width: 360px; width: 90%; text-align: center; }
@@ -314,20 +126,12 @@
     .modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
     .btn-cancelar { background: #f0f0f0; color: #555; }
     .btn-confirmar { background: #e63939; color: #fff; }
-
     .modal-plan-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-    .btn-plan-opcion {
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
+    .btn-plan-opcion { padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
     .btn-plan-opcion:hover { opacity: 0.85; }
     .btn-plan-opcion.mensual { background: #f0e8fd; color: #6a1a8f; }
     .btn-plan-opcion.anual { background: #fde8f0; color: #8f1a4a; }
+    .sin-datos { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -373,23 +177,15 @@
   <button class="tab" onclick="setTab('anual', event)">📆 Plan anual</button>
   <button class="tab" onclick="setTab('verificados', event)">✓ Verificados</button>
   <button class="tab" onclick="setTab('suspendidos', event)">🚫 Suspendidos</button>
-
   <div class="filtro-barrio-wrap">
     <label>🏘 Barrio:</label>
     <select id="filtro-barrio" onchange="renderTabla()">
       <option value="">Todos</option>
     </select>
   </div>
-
   <div class="search-wrap">
     <span>🔍</span>
-    <input
-      type="number"
-      id="search-id"
-      placeholder="Buscar por ID..."
-      oninput="buscarPorId()"
-      min="1"
-    />
+    <input type="number" id="search-id" placeholder="Buscar por ID..." oninput="buscarPorId()" min="1"/>
     <button onclick="limpiarBusqueda()" title="Limpiar">✕</button>
   </div>
 </div>
@@ -403,8 +199,10 @@
         <th>ID</th>
         <th>Local</th>
         <th>Barrio</th>
+        <th>Actividad</th>
         <th>Categoría</th>
         <th>Visitas</th>
+        <th>Actividad</th>
         <th>Plan</th>
         <th>Verificado</th>
         <th>Estado</th>
@@ -412,7 +210,7 @@
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="9" class="loading">Cargando...</td></tr>
+      <tr><td colspan="11" class="sin-datos">Cargando...</td></tr>
     </tbody>
   </table>
 </div>
@@ -468,7 +266,6 @@
   const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
   const { createClient } = supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
   const ADMIN_PASS = 'Perlita92@';
 
   function checkAuth() {
@@ -482,11 +279,10 @@
     }
     return true;
   }
-
-  if (!checkAuth()) { throw new Error('No autorizado'); }
+  if (!checkAuth()) throw new Error('No autorizado');
 
   let locales = [];
-  let barriosCache = {}; // id -> nombre barrio
+  let barriosCache = {};
   let tabActual = 'todos';
   let maxVisitas = 1;
   let idParaBorrar = null;
@@ -501,74 +297,83 @@
     return 'vencido';
   }
 
-  // ── Nominatim: detectar barrio por coordenadas ──────────────────────────────
+  // ── Actividad ─────────────────────────────────────────────────────────────
+  function getActividadHtml(l) {
+    const updatedAt = l.updated_at || l.created_at;
+    if (!updatedAt) {
+      return '<div class="actividad-wrap actividad-gris"><div class="actividad-dot"></div>Sin datos</div>';
+    }
+    const dias = Math.floor((new Date() - new Date(updatedAt)) / (1000 * 60 * 60 * 24));
+    if (dias <= 15) {
+      return `<div class="actividad-wrap actividad-verde"><div class="actividad-dot"></div>Hace ${dias}d</div>`;
+    } else if (dias <= 30) {
+      return `<div class="actividad-wrap actividad-amarillo"><div class="actividad-dot"></div>Hace ${dias}d</div>`;
+    } else {
+      return `<div class="actividad-wrap actividad-rojo"><div class="actividad-dot"></div>Hace ${dias}d</div>`;
+    }
+  }
+
+  // ── Nominatim ─────────────────────────────────────────────────────────────
   async function detectarBarrio(lat, lng) {
     try {
       const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`;
       const res = await fetch(url, { headers: { 'User-Agent': 'DelBarrioAdmin/1.0' } });
       const data = await res.json();
       const addr = data.address || {};
-      // Para CABA: neighbourhood > suburb > quarter > city_district > borough > district
       return addr.neighbourhood || addr.suburb || addr.quarter || addr.city_district || addr.borough || addr.district || '—';
-    } catch (e) {
-      return '—';
-    }
+    } catch { return '—'; }
   }
 
   async function detectarBarriosEnLotes(lista) {
-    const LOTE = 3;
-    const DELAY = 1100; // ms entre lotes para respetar límite de Nominatim (1 req/seg)
+    const LOTE = 3, DELAY = 1100;
     for (let i = 0; i < lista.length; i += LOTE) {
       const lote = lista.slice(i, i + LOTE);
       await Promise.all(lote.map(async (l) => {
         if (!l.lat || !l.lng || barriosCache[l.id] !== undefined) return;
         barriosCache[l.id] = 'cargando';
-        renderTabla(); // muestra spinner mientras carga
+        renderTabla();
         const barrio = await detectarBarrio(l.lat, l.lng);
         barriosCache[l.id] = barrio;
       }));
-      renderTabla(); // actualiza la tabla con los barrios detectados
+      renderTabla();
       actualizarSelectBarrios();
       actualizarSelectBarrioGrafico();
-      if (i + LOTE < lista.length) {
-        await new Promise(r => setTimeout(r, DELAY));
-      }
+      if (i + LOTE < lista.length) await new Promise(r => setTimeout(r, DELAY));
     }
   }
 
   function actualizarSelectBarrios() {
-    const barrios = [...new Set(
-      Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—')
-    )].sort();
+    const barrios = [...new Set(Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—'))].sort();
     const select = document.getElementById('filtro-barrio');
-    const valorActual = select.value;
-    select.innerHTML = '<option value="">Todos</option>' +
-      barrios.map(b => `<option value="${b}" ${b === valorActual ? 'selected' : ''}>${b}</option>`).join('');
+    const val = select.value;
+    select.innerHTML = '<option value="">Todos</option>' + barrios.map(b => `<option value="${b}" ${b === val ? 'selected' : ''}>${b}</option>`).join('');
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
+  function actualizarSelectBarrioGrafico() {
+    const barrios = [...new Set(Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—'))].sort();
+    const select = document.getElementById('select-barrio-grafico');
+    const val = select.value;
+    select.innerHTML = '<option value="">Todos los barrios</option>' + barrios.map(b => `<option value="${b}" ${b === val ? 'selected' : ''}>${b}</option>`).join('');
+  }
+
+  // ── Cargar ────────────────────────────────────────────────────────────────
   async function cargar() {
     const { data, error } = await db.from('locales').select('*').order('local_id', { ascending: true });
     if (error) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="sin-datos">Error al cargar datos</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="11" class="sin-datos">Error al cargar datos</td></tr>';
       return;
     }
     locales = data || [];
-
-    // Traer nombres de profiles
     const ownerIds = locales.map(l => l.owner_id).filter(Boolean);
     const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', ownerIds);
     const emailMap = {};
     if (profiles) profiles.forEach(p => emailMap[p.id] = p.full_name);
     locales = locales.map(l => ({ ...l, email: emailMap[l.owner_id] || '—' }));
-
     maxVisitas = Math.max(1, ...locales.map(l => l.visitas || 0));
     actualizarStats();
     renderTabla();
     cargarGrafico();
     cargarDireccionesBloqueadas();
-
-    // Detectar barrios en segundo plano
     detectarBarriosEnLotes(locales);
   }
 
@@ -631,13 +436,10 @@
       if (tabActual === 'suspendidos') filtrados = locales.filter(l => l.suspendido);
     }
 
-    // Filtro por barrio
-    if (filtroBa) {
-      filtrados = filtrados.filter(l => barriosCache[l.id] === filtroBa);
-    }
+    if (filtroBa) filtrados = filtrados.filter(l => barriosCache[l.id] === filtroBa);
 
     if (filtrados.length === 0) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="11" class="sin-datos">No hay locales en esta categoría</td></tr>';
       return;
     }
 
@@ -648,19 +450,27 @@
       const plan = getPlan(l);
       const esResultadoBusqueda = busquedaId !== '';
 
-      // Barrio
       const barrioVal = barriosCache[l.id];
       let barrioHtml;
-      if (!l.lat || !l.lng) {
-        barrioHtml = '<span style="color:#bbb;font-size:12px;">Sin coords</span>';
-      } else if (barrioVal === undefined) {
-        barrioHtml = '<span class="barrio-loading">Pendiente...</span>';
-      } else if (barrioVal === 'cargando') {
-        barrioHtml = '<span class="barrio-loading">Detectando...</span>';
-      } else if (barrioVal === '—') {
-        barrioHtml = '<span class="barrio-error">No detectado</span>';
+      if (!l.lat || !l.lng) barrioHtml = '<span style="color:#bbb;font-size:12px;">Sin coords</span>';
+      else if (barrioVal === undefined) barrioHtml = '<span class="barrio-loading">Pendiente...</span>';
+      else if (barrioVal === 'cargando') barrioHtml = '<span class="barrio-loading">Detectando...</span>';
+      else if (barrioVal === '—') barrioHtml = '<span class="barrio-error">No detectado</span>';
+      else barrioHtml = `<span class="barrio-ok">📍 ${barrioVal}</span>`;
+
+      // Actividad basada en updated_at
+      let actividadHtml;
+      if (!l.updated_at) {
+        actividadHtml = '<span class="act-nunca">Sin actividad</span>';
       } else {
-        barrioHtml = `<span class="barrio-ok">📍 ${barrioVal}</span>`;
+        const diasDesdeUpdate = Math.floor((new Date() - new Date(l.updated_at)) / (1000 * 60 * 60 * 24));
+        if (diasDesdeUpdate <= 15) {
+          actividadHtml = `<span class="act-verde">🟢 Activo<br><small style="font-weight:400;color:#888;">hace ${diasDesdeUpdate}d</small></span>`;
+        } else if (diasDesdeUpdate <= 30) {
+          actividadHtml = `<span class="act-amarillo">🟡 Moderado<br><small style="font-weight:400;color:#888;">hace ${diasDesdeUpdate}d</small></span>`;
+        } else {
+          actividadHtml = `<span class="act-rojo">🔴 Inactivo<br><small style="font-weight:400;color:#888;">hace ${diasDesdeUpdate}d</small></span>`;
+        }
       }
 
       const planBadge = {
@@ -672,9 +482,8 @@
 
       const estadoBadge = l.suspendido
         ? '<span class="badge badge-suspendido">🚫 Suspendido</span>'
-        : l.activo
-          ? '<span class="badge badge-activo">Activo</span>'
-          : '<span class="badge badge-inactivo">Inactivo</span>';
+        : l.activo ? '<span class="badge badge-activo">Activo</span>'
+        : '<span class="badge badge-inactivo">Inactivo</span>';
 
       const nombreEscapado = (l.nombre || '').replace(/'/g, "\\'");
 
@@ -687,6 +496,7 @@
             <small style="color:#2a9d8f">${l.email}</small>
           </td>
           <td>${barrioHtml}</td>
+          <td>${actividadHtml}</td>
           <td>${cats}</td>
           <td>
             <div class="visitas-bar">
@@ -694,6 +504,7 @@
               <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
             </div>
           </td>
+          <td>${getActividadHtml(l)}</td>
           <td>${planBadge}</td>
           <td>
             <button class="btn btn-verificar ${l.verificado ? 'on' : ''}" onclick="toggleVerificado('${l.id}', ${l.verificado})">
@@ -703,25 +514,16 @@
           <td>${estadoBadge}</td>
           <td>
             <div class="acciones">
-              <button class="btn btn-extender" onclick="abrirExtender('${l.id}', '${nombreEscapado}', '${l.free_until || ''}')">
-                +30 días
-              </button>
-              <button class="btn btn-plan-mensual" onclick="abrirPlan('${l.id}', '${nombreEscapado}')">
-                💳 Plan
-              </button>
+              <button class="btn btn-extender" onclick="abrirExtender('${l.id}', '${nombreEscapado}', '${l.free_until || ''}')">+30 días</button>
+              <button class="btn btn-plan-mensual" onclick="abrirPlan('${l.id}', '${nombreEscapado}')">💳 Plan</button>
               <button class="btn btn-suspender ${l.suspendido ? 'on' : ''}" onclick="toggleSuspendido('${l.id}', ${l.suspendido})">
                 ${l.suspendido ? '↩ Reactivar' : '🚫 Suspender'}
               </button>
-              <button class="btn btn-borrar" onclick="abrirBorrar('${l.id}', '${nombreEscapado}')">
-                🗑 Borrar
-              </button>
-              <button class="btn btn-bloquear-dir" onclick="bloquearDireccion('${l.id}', '${(l.direccion || '').replace(/'/g, "\\'")}', '${nombreEscapado}')">
-                🚫 Bloquear dir.
-              </button>
+              <button class="btn btn-borrar" onclick="abrirBorrar('${l.id}', '${nombreEscapado}')">🗑 Borrar</button>
+              <button class="btn btn-bloquear-dir" onclick="bloquearDireccion('${l.id}', '${(l.direccion || '').replace(/'/g, "\\'")}', '${nombreEscapado}')">🚫 Bloquear dir.</button>
             </div>
           </td>
-        </tr>
-      `;
+        </tr>`;
     }).join('');
   }
 
@@ -774,8 +576,7 @@
   function abrirExtender(id, nombre, freeUntil) {
     idParaExtender = id;
     const base = freeUntil && new Date(freeUntil) > new Date() ? new Date(freeUntil) : new Date();
-    const nueva = new Date(base);
-    nueva.setDate(nueva.getDate() + 30);
+    const nueva = new Date(base); nueva.setDate(nueva.getDate() + 30);
     const fechaStr = nueva.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     document.getElementById('modal-extender-texto').textContent = `Extender el período gratis de "${nombre}" por 30 días más. Nuevo vencimiento: ${fechaStr}.`;
     document.getElementById('overlay-extender').classList.add('visible');
@@ -785,13 +586,9 @@
     if (!idParaExtender) return;
     const local = locales.find(l => l.id === idParaExtender);
     const base = local?.free_until && new Date(local.free_until) > new Date() ? new Date(local.free_until) : new Date();
-    const nueva = new Date(base);
-    nueva.setDate(nueva.getDate() + 30);
+    const nueva = new Date(base); nueva.setDate(nueva.getDate() + 30);
     try {
-      const { error } = await db.from('locales').update({
-        free_until: nueva.toISOString(),
-        activo: true,
-      }).eq('id', idParaExtender);
+      const { error } = await db.from('locales').update({ free_until: nueva.toISOString(), activo: true }).eq('id', idParaExtender);
       if (error) throw error;
       locales = locales.map(l => l.id === idParaExtender ? { ...l, free_until: nueva.toISOString(), activo: true } : l);
       actualizarStats(); renderTabla();
@@ -809,34 +606,20 @@
   async function confirmarPlan(tipoPlan) {
     if (!idParaPlan) return;
     try {
-      const { error } = await db.from('locales').update({
-        plan: tipoPlan,
-        payment_id: `manual_${Date.now()}`,
-        activo: true,
-        suspendido: false,
-      }).eq('id', idParaPlan);
+      const { error } = await db.from('locales').update({ plan: tipoPlan, payment_id: `manual_${Date.now()}`, activo: true, suspendido: false }).eq('id', idParaPlan);
       if (error) throw error;
-      locales = locales.map(l => l.id === idParaPlan
-        ? { ...l, plan: tipoPlan, payment_id: `manual_${Date.now()}`, activo: true, suspendido: false }
-        : l
-      );
+      locales = locales.map(l => l.id === idParaPlan ? { ...l, plan: tipoPlan, payment_id: `manual_${Date.now()}`, activo: true, suspendido: false } : l);
       actualizarStats(); renderTabla();
       alert(`✅ Plan ${tipoPlan} activado correctamente`);
     } catch(e) { alert('Error: ' + e.message); }
     cerrarModal('plan');
   }
 
-  // ── Gráfico de visitas ──────────────────────────────────────────────────────
-  let graficoInstance = null;
-
-  // ── Direcciones bloqueadas ──────────────────────────────────────────────────
+  // ── Direcciones bloqueadas ────────────────────────────────────────────────
   let direccionesBloqueadas = [];
 
   async function cargarDireccionesBloqueadas() {
-    const { data } = await db
-      .from('direcciones_bloqueadas')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data } = await db.from('direcciones_bloqueadas').select('*').order('created_at', { ascending: false });
     direccionesBloqueadas = data || [];
     renderDireccionesBloqueadas();
   }
@@ -853,36 +636,24 @@
           <div class="bloqueada-dir">📍 ${d.direccion}</div>
           <div class="bloqueada-meta">Bloqueada el ${new Date(d.created_at).toLocaleDateString('es-AR')}${d.motivo ? ' · ' + d.motivo : ''}</div>
         </div>
-        <button class="btn-desbloquear" onclick="desbloquearDireccion(${d.id}, '${d.direccion.replace(/'/g, "\\'")}')">
-          ✅ Desbloquear
-        </button>
-      </div>
-    `).join('');
+        <button class="btn-desbloquear" onclick="desbloquearDireccion(${d.id}, '${d.direccion.replace(/'/g, "\\'")}')">✅ Desbloquear</button>
+      </div>`).join('');
   }
 
   async function bloquearDireccion(localId, direccion, nombreLocal) {
     if (!direccion) { alert('Este local no tiene dirección cargada.'); return; }
-    const confirmar = confirm(`¿Bloquear la dirección "${direccion}"?\n\nEsto impedirá que se registren nuevos locales en esa dirección.\n\nLocal: ${nombreLocal}`);
-    if (!confirmar) return;
+    if (!confirm(`¿Bloquear la dirección "${direccion}"?\n\nLocal: ${nombreLocal}`)) return;
     try {
-      const { error } = await db.from('direcciones_bloqueadas').insert({
-        direccion: direccion.trim(),
-        motivo: `Local: ${nombreLocal}`,
-        local_id: localId,
-      });
-      if (error && error.code === '23505') {
-        alert('Esta dirección ya está bloqueada.');
-        return;
-      }
+      const { error } = await db.from('direcciones_bloqueadas').insert({ direccion: direccion.trim(), motivo: `Local: ${nombreLocal}`, local_id: localId });
+      if (error && error.code === '23505') { alert('Esta dirección ya está bloqueada.'); return; }
       if (error) throw error;
       await cargarDireccionesBloqueadas();
-      alert(`✅ Dirección bloqueada correctamente.`);
+      alert('✅ Dirección bloqueada correctamente.');
     } catch(e) { alert('Error: ' + e.message); }
   }
 
   async function desbloquearDireccion(id, direccion) {
-    const confirmar = confirm(`¿Desbloquear "${direccion}"?\n\nEsta dirección volverá a poder registrar nuevos locales.`);
-    if (!confirmar) return;
+    if (!confirm(`¿Desbloquear "${direccion}"?`)) return;
     try {
       const { error } = await db.from('direcciones_bloqueadas').delete().eq('id', id);
       if (error) throw error;
@@ -890,11 +661,8 @@
       alert('✅ Dirección desbloqueada.');
     } catch(e) { alert('Error: ' + e.message); }
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
-  cargar();
-
-  // ── Gráfico de visitas ───────────────────────────────────────────────────────
+  // ── Gráfico de visitas ────────────────────────────────────────────────────
   let periodoActual = 'dia';
   let chartInstance = null;
 
@@ -908,119 +676,66 @@
   async function cargarGrafico() {
     document.getElementById('grafico-loading').style.display = 'block';
     document.getElementById('grafico-canvas').style.display = 'none';
-
     const barrioFiltro = document.getElementById('select-barrio-grafico').value;
-
-    // Rango de fechas según período
     const ahora = new Date();
-    let desde;
-    if (periodoActual === 'dia') {
-      desde = new Date(ahora); desde.setDate(desde.getDate() - 29); // últimos 30 días
-    } else if (periodoActual === 'semana') {
-      desde = new Date(ahora); desde.setDate(desde.getDate() - 7 * 11); // últimas 12 semanas
-    } else {
-      desde = new Date(ahora); desde.setMonth(desde.getMonth() - 11); // últimos 12 meses
-    }
+    let desde = new Date(ahora);
+    if (periodoActual === 'dia') desde.setDate(desde.getDate() - 29);
+    else if (periodoActual === 'semana') desde.setDate(desde.getDate() - 7 * 11);
+    else desde.setMonth(desde.getMonth() - 11);
 
-    // Traer visitas desde Supabase
-    let query = db.from('visitas_app').select('local_id, fecha').gte('fecha', desde.toISOString());
-    const { data: visitas, error } = await query;
+    const { data: visitas, error } = await db.from('visitas_app').select('local_id, fecha').gte('fecha', desde.toISOString());
+    if (error || !visitas) { document.getElementById('grafico-loading').textContent = 'Error al cargar visitas.'; return; }
 
-    if (error || !visitas) {
-      document.getElementById('grafico-loading').textContent = 'Error al cargar visitas.';
-      return;
-    }
-
-    // Filtrar por barrio si aplica
     let visitasFiltradas = visitas;
     if (barrioFiltro) {
-      const idsEnBarrio = locales
-        .filter(l => barriosCache[l.id] === barrioFiltro)
-        .map(l => l.id);
+      const idsEnBarrio = locales.filter(l => barriosCache[l.id] === barrioFiltro).map(l => l.id);
       visitasFiltradas = visitas.filter(v => idsEnBarrio.includes(v.local_id));
     }
 
-    // Agrupar por período
     const conteo = {};
     visitasFiltradas.forEach(v => {
       const d = new Date(v.fecha);
       let key;
-      if (periodoActual === 'dia') {
-        key = d.toISOString().slice(0, 10); // YYYY-MM-DD
-      } else if (periodoActual === 'semana') {
-        // Lunes de esa semana
-        const lunes = new Date(d);
-        lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      if (periodoActual === 'dia') key = d.toISOString().slice(0, 10);
+      else if (periodoActual === 'semana') {
+        const lunes = new Date(d); lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         key = lunes.toISOString().slice(0, 10);
-      } else {
-        key = d.toISOString().slice(0, 7); // YYYY-MM
-      }
+      } else key = d.toISOString().slice(0, 7);
       conteo[key] = (conteo[key] || 0) + 1;
     });
 
-    // Generar labels del eje X (sin huecos)
-    const labels = [];
-    const valores = [];
+    const labels = [], valores = [];
     if (periodoActual === 'dia') {
       for (let i = 29; i >= 0; i--) {
         const d = new Date(ahora); d.setDate(d.getDate() - i);
         const key = d.toISOString().slice(0, 10);
-        labels.push(key.slice(5)); // MM-DD
-        valores.push(conteo[key] || 0);
+        labels.push(key.slice(5)); valores.push(conteo[key] || 0);
       }
     } else if (periodoActual === 'semana') {
       for (let i = 11; i >= 0; i--) {
         const d = new Date(ahora); d.setDate(d.getDate() - i * 7);
         const lunes = new Date(d); lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         const key = lunes.toISOString().slice(0, 10);
-        labels.push(key.slice(5));
-        valores.push(conteo[key] || 0);
+        labels.push(key.slice(5)); valores.push(conteo[key] || 0);
       }
     } else {
       for (let i = 11; i >= 0; i--) {
         const d = new Date(ahora); d.setMonth(d.getMonth() - i);
         const key = d.toISOString().slice(0, 7);
-        const mes = d.toLocaleString('es-AR', { month: 'short' });
-        labels.push(mes);
-        valores.push(conteo[key] || 0);
+        labels.push(d.toLocaleString('es-AR', { month: 'short' })); valores.push(conteo[key] || 0);
       }
     }
 
-    // Renderizar chart
     document.getElementById('grafico-loading').style.display = 'none';
     const canvas = document.getElementById('grafico-canvas');
     canvas.style.display = 'block';
-
     if (chartInstance) chartInstance.destroy();
     chartInstance = new Chart(canvas, {
       type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Visitas',
-          data: valores,
-          backgroundColor: 'rgba(42, 157, 143, 0.7)',
-          borderColor: '#2a9d8f',
-          borderWidth: 1,
-          borderRadius: 6,
-        }]
-      },
+      data: { labels, datasets: [{ label: 'Visitas', data: valores, backgroundColor: 'rgba(42,157,143,0.7)', borderColor: '#2a9d8f', borderWidth: 1, borderRadius: 6 }] },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: (items) => {
-                const label = items[0].label;
-                if (periodoActual === 'semana') return `Semana del ${label}`;
-                if (periodoActual === 'mes') return label;
-                return label;
-              }
-            }
-          }
-        },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { font: { size: 11 } } },
           y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: '#f0f0f0' } }
@@ -1029,16 +744,7 @@
     });
   }
 
-  function actualizarSelectBarrioGrafico() {
-    const barrios = [...new Set(
-      Object.values(barriosCache).filter(b => b && b !== 'cargando' && b !== '—')
-    )].sort();
-    const select = document.getElementById('select-barrio-grafico');
-    const valorActual = select.value;
-    select.innerHTML = '<option value="">Todos los barrios</option>' +
-      barrios.map(b => `<option value="${b}" ${b === valorActual ? 'selected' : ''}>${b}</option>`).join('');
-  }
-  // ────────────────────────────────────────────────────────────────────────────
+  cargar();
 </script>
 </body>
 </html>
