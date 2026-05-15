@@ -148,6 +148,10 @@
   <div class="stat"><div class="stat-num" id="stat-anual">—</div><div class="stat-label">Plan anual</div></div>
   <div class="stat"><div class="stat-num" id="stat-verificados">—</div><div class="stat-label">Verificados</div></div>
   <div class="stat"><div class="stat-num" id="stat-suspendidos">—</div><div class="stat-label">Suspendidos</div></div>
+  <div class="stat" style="border-left:4px solid #2d6a4f"><div class="stat-num" id="stat-act-verde" style="color:#2d6a4f">—</div><div class="stat-label">🟢 Activos (&lt;15d)</div></div>
+  <div class="stat" style="border-left:4px solid #856404"><div class="stat-num" id="stat-act-amarillo" style="color:#856404">—</div><div class="stat-label">🟡 Moderados (15-30d)</div></div>
+  <div class="stat" style="border-left:4px solid #e63939"><div class="stat-num" id="stat-act-rojo" style="color:#e63939">—</div><div class="stat-label">🔴 Inactivos (&gt;30d)</div></div>
+  <div class="stat" style="border-left:4px solid #bbb"><div class="stat-num" id="stat-act-nunca" style="color:#bbb">—</div><div class="stat-label">⚪ Sin actividad</div></div>
 </div>
 
 <div class="grafico-section">
@@ -183,6 +187,13 @@
       <option value="">Todos</option>
     </select>
   </div>
+
+  <div class="filtro-barrio-wrap">
+    <label>🏪 Rubro:</label>
+    <select id="filtro-rubro" onchange="renderTabla()">
+      <option value="">Todos</option>
+    </select>
+  </div>
   <div class="search-wrap">
     <span>🔍</span>
     <input type="number" id="search-id" placeholder="Buscar por ID..." oninput="buscarPorId()" min="1"/>
@@ -202,7 +213,6 @@
         <th>Actividad</th>
         <th>Categoría</th>
         <th>Visitas</th>
-        <th>Actividad</th>
         <th>Plan</th>
         <th>Verificado</th>
         <th>Estado</th>
@@ -210,7 +220,7 @@
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="11" class="sin-datos">Cargando...</td></tr>
+      <tr><td colspan="10" class="sin-datos">Cargando...</td></tr>
     </tbody>
   </table>
 </div>
@@ -360,7 +370,7 @@
   async function cargar() {
     const { data, error } = await db.from('locales').select('*').order('local_id', { ascending: true });
     if (error) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="11" class="sin-datos">Error al cargar datos</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="10" class="sin-datos">Error al cargar datos</td></tr>';
       return;
     }
     locales = data || [];
@@ -385,6 +395,29 @@
     document.getElementById('stat-anual').textContent = locales.filter(l => l.payment_id && l.plan === 'anual').length;
     document.getElementById('stat-verificados').textContent = locales.filter(l => l.verificado).length;
     document.getElementById('stat-suspendidos').textContent = locales.filter(l => l.suspendido).length;
+
+    // Stats de actividad
+    let verde = 0, amarillo = 0, rojo = 0, nunca = 0;
+    locales.forEach(l => {
+      if (!l.updated_at) { nunca++; return; }
+      const dias = Math.floor((new Date() - new Date(l.updated_at)) / (1000 * 60 * 60 * 24));
+      if (dias <= 15) verde++;
+      else if (dias <= 30) amarillo++;
+      else rojo++;
+    });
+    document.getElementById('stat-act-verde').textContent = verde;
+    document.getElementById('stat-act-amarillo').textContent = amarillo;
+    document.getElementById('stat-act-rojo').textContent = rojo;
+    document.getElementById('stat-act-nunca').textContent = nunca;
+
+    // Poblar selector de rubros
+    const rubros = [...new Set(locales.flatMap(l =>
+      Array.isArray(l.categoria) ? l.categoria : (l.categoria ? [l.categoria] : [])
+    ))].sort();
+    const selectRubro = document.getElementById('filtro-rubro');
+    const valorRubro = selectRubro.value;
+    selectRubro.innerHTML = '<option value="">Todos</option>' +
+      rubros.map(r => `<option value="${r}" ${r === valorRubro ? 'selected' : ''}>${r}</option>`).join('');
   }
 
   function setTab(tab, event) {
@@ -438,8 +471,16 @@
 
     if (filtroBa) filtrados = filtrados.filter(l => barriosCache[l.id] === filtroBa);
 
+    // Filtro por rubro
+    const filtroRubro = document.getElementById('filtro-rubro').value;
+    if (filtroRubro) {
+      filtrados = filtrados.filter(l =>
+        Array.isArray(l.categoria) ? l.categoria.includes(filtroRubro) : l.categoria === filtroRubro
+      );
+    }
+
     if (filtrados.length === 0) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="11" class="sin-datos">No hay locales en esta categoría</td></tr>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="10" class="sin-datos">No hay locales en esta categoría</td></tr>';
       return;
     }
 
@@ -504,7 +545,6 @@
               <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
             </div>
           </td>
-          <td>${getActividadHtml(l)}</td>
           <td>${planBadge}</td>
           <td>
             <button class="btn btn-verificar ${l.verificado ? 'on' : ''}" onclick="toggleVerificado('${l.id}', ${l.verificado})">
