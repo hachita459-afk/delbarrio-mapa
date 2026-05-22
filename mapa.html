@@ -262,7 +262,10 @@
 
   function pintarUsuario(lat, lng) {
     if (markerUsuario) mapa.removeLayer(markerUsuario);
-    const pinUsuario = '<div style="width:16px;height:16px;background:#2a9d8f;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>';
+    const pinUsuario = '<div style="position:relative;width:16px;height:16px;">' +
+      '<div style="position:absolute;top:-6px;left:-6px;width:28px;height:28px;border-radius:50%;border:2.5px solid #2a9d8f;background:rgba(42,157,143,0.15);"></div>' +
+      '<div style="width:16px;height:16px;background:#2a9d8f;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>' +
+    '</div>';
     markerUsuario = L.marker([lat, lng], {
       icon: L.divIcon({ html: pinUsuario, iconSize: [16,16], iconAnchor: [8,8], className: '' }),
       zIndexOffset: 1000
@@ -276,13 +279,12 @@
         const lat = parseFloat(urlParams.get('lat') || '-34.6037');
         const lng = parseFloat(urlParams.get('lng') || '-58.3816');
         const visitadosParam = urlParams.get('visitados');
-        const zoom = parseInt(urlParams.get('zoom') || '1');
 
         locales = JSON.parse(decodeURIComponent(localesParam));
         const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
         localStorage.setItem('locales_visitados', JSON.stringify(visitadosArr));
 
-        mapa.setView([lat, lng], 15 + zoom);
+        mapa.setView([lat, lng], 14);
         pintarUsuario(lat, lng);
         renderMapa();
         return;
