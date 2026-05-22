@@ -219,6 +219,15 @@
 </div>
 
 <script>
+  // Detectar si viene desde la app
+  const urlParams = new URLSearchParams(window.location.search);
+  const esApp = urlParams.has('locales');
+  if (esApp) {
+    document.querySelector('header').style.display = 'none';
+    document.querySelector('.subheader').style.display = 'none';
+    document.getElementById('mapa').style.height = '100vh';
+  }
+
   const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
   const { createClient } = supabase;
@@ -252,6 +261,28 @@
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapa);
 
   async function cargar() {
+    // Si viene desde la app, usar los locales que manda por URL
+    if (esApp) {
+      try {
+        const localesParam = urlParams.get('locales');
+        const lat = parseFloat(urlParams.get('lat') || '-34.6037');
+        const lng = parseFloat(urlParams.get('lng') || '-58.3816');
+        const visitadosParam = urlParams.get('visitados');
+        const zoom = parseInt(urlParams.get('zoom') || '1');
+
+        locales = JSON.parse(decodeURIComponent(localesParam));
+        const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
+        localStorage.setItem('locales_visitados', JSON.stringify(visitadosArr));
+
+        mapa.setView([lat, lng], 15 + zoom);
+        renderMapa();
+        return;
+      } catch (e) {
+        console.error('Error parsing app params:', e);
+      }
+    }
+
+    // Si viene desde la web, cargar de Supabase
     const [{ data: cats }, { data }] = await Promise.all([
       db.from('categorias').select('nombre').order('orden'),
       db.from('locales').select('*').eq('activo', true).eq('suspendido', false)
@@ -295,7 +326,6 @@
     markers.forEach(m => mapa.removeLayer(m));
     markers = [];
     const visitados = getVisitados();
-    const favoritos = getFavoritos();
 
     localesFiltrados().forEach(l => {
       if (!l.lat || !l.lng) return;
@@ -313,18 +343,28 @@
         icon: L.divIcon({ html: pinHtml, iconSize: [14,14], iconAnchor: [7,7], className: '' })
       }).addTo(mapa);
 
-      marker.bindPopup(
-        '<div style="text-align:center;padding:8px;min-width:180px;">' +
-          '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
-          '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
-          '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:14px;">Ver local</a>' +
-        '</div>'
-      );
+      // En la app, al tocar un pin envía mensaje a React Native
+      // En la web, abre el popup normal
+      if (esApp) {
+        marker.on('click', () => {
+          window.ReactNativeWebView.postMessage(String(l.id));
+        });
+      } else {
+        marker.bindPopup(
+          '<div style="text-align:center;padding:8px;min-width:180px;">' +
+            '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
+            '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:14px;">Ver local</a>' +
+          '</div>'
+        );
+      }
+
       markers.push(marker);
     });
   }
 
   function renderLista() {
+    if (esApp) return; // En la app la lista la maneja React Native
     const items = localesFiltrados();
     const favoritos = getFavoritos();
 
