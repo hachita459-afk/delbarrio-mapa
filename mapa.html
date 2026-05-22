@@ -1,89 +1,552 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Del Barrio — Encontrá lo que buscás cerca tuyo</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body, #map { height:100%; width:100%; overflow:hidden; }
-    @keyframes pulse {
-      0%   { transform: scale(1);   opacity: 0.8; }
-      50%  { transform: scale(1.5); opacity: 0.3; }
-      100% { transform: scale(1);   opacity: 0.8; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f8f8; }
+
+    /* ── HEADER ── */
+    header {
+      background: #2a9d8f;
+      padding: 0 16px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
-    .pin-nuevo-ring {
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo-circle { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; }
+    .logo-pin { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    .logo-text { font-size: 20px; font-weight: 700; color: #fff; }
+    .header-btns { display: flex; align-items: center; gap: 8px; }
+    .btn-info {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.5);
+      color: #fff; font-size: 16px; font-style: italic; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-duenos {
+      background: #1a1a2e; color: #fff; border: none;
+      padding: 8px 18px; border-radius: 20px;
+      font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+
+    /* ── SUBHEADER ── */
+    .subheader {
+      background: #2a9d8f;
+      padding: 0 16px 12px;
+    }
+    .search-row {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px; padding: 0 12px; margin-bottom: 8px;
+    }
+    .search-row input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: #fff; font-size: 14px; padding: 10px 0;
+    }
+    .search-row input::placeholder { color: rgba(255,255,255,0.6); }
+    .search-clear {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 16px; cursor: pointer; padding: 4px; display: none;
+    }
+    .vista-toggle { display: flex; gap: 8px; }
+    .vista-btn {
+      flex: 1; padding: 8px 0; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.8);
+      transition: all 0.15s;
+    }
+    .vista-btn.activo { background: rgba(255,255,255,0.35); color: #fff; }
+
+    /* ── MAPA ── */
+    #mapa-wrap { position: relative; }
+    #mapa { height: calc(100vh - 136px); width: 100%; }
+    #btn-filtro-mapa {
+      position: absolute; top: 16px; left: 16px; z-index: 500;
+      background: #fff; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #btn-filtro-mapa.activo { background: #2a9d8f; color: #fff; }
+    #btn-favoritos-mapa {
+      position: absolute; top: 16px; right: 16px; z-index: 500;
+      background: #fff; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #btn-favoritos-mapa.activo { background: #e63939; color: #fff; }
+    #btn-mi-ubicacion {
+      position: absolute; bottom: 24px; right: 16px; z-index: 500;
+      background: #fff; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    /* ── LISTA ── */
+    #lista-wrap { display: none; }
+    .filtro-scroll {
+      padding: 12px 16px; background: #fff; border-bottom: 1px solid #eee;
+      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+    }
+    .filtro-scroll::-webkit-scrollbar { display: none; }
+    .filtro-pill {
+      padding: 6px 16px; border-radius: 20px; border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      background: #f0f0f0; color: #555; white-space: nowrap; transition: all 0.15s;
+    }
+    .filtro-pill.activo { background: #2a9d8f; color: #fff; }
+
+    .lista-contenido { padding: 16px; max-width: 800px; margin: 0 auto; }
+    .resultados-texto { font-size: 13px; color: #888; font-style: italic; margin-bottom: 12px; }
+
+    .card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor: pointer; text-decoration: none; display: block;
+      transition: transform 0.1s;
+    }
+    .card:hover { transform: translateY(-2px); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .card-nombre { font-size: 17px; font-weight: 600; color: #1a1a2e; flex: 1; }
+    .card-fav { font-size: 18px; padding: 4px; }
+    .card-categoria { font-size: 14px; color: #888; }
+
+    .sin-locales { text-align: center; padding: 60px 20px; color: #aaa; font-size: 15px; }
+
+    /* ── MODALES ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 2000;
+      align-items: flex-end; justify-content: center;
+    }
+    .overlay.visible { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 20px 20px 0 0;
+      padding: 24px; width: 100%; max-width: 600px;
+      max-height: 70vh; overflow-y: auto;
+    }
+    .modal-titulo { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+    .modal-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .modal-pill {
+      padding: 10px 16px; border-radius: 10px; border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      background: #f0f0f0; color: #555; transition: all 0.15s;
+    }
+    .modal-pill.activo { background: #2a9d8f; color: #fff; font-weight: 600; }
+
+    .modal-contacto {
+      background: #fff; border-radius: 20px 20px 0 0;
+      padding: 28px; width: 100%; max-width: 600px; text-align: center;
+    }
+    .modal-contacto-titulo { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; }
+    .modal-contacto-texto { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+    .modal-contacto-btn {
+      display: block; background: #f0faf9; border: 1px solid #2a9d8f;
+      border-radius: 12px; padding: 14px 20px; color: #2a9d8f;
+      font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 16px;
+    }
+    .modal-links { display: flex; gap: 16px; justify-content: center; margin-bottom: 12px; }
+    .modal-links a { font-size: 13px; color: #2a9d8f; text-decoration: none; }
+    .modal-cerrar { background: none; border: none; color: #aaa; font-size: 14px; cursor: pointer; padding: 8px; }
+
+    /* ── MODAL UBICACION ── */
+    #overlay-ubicacion {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 3000;
+      align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    #overlay-ubicacion.visible { display: flex; }
+    .modal-ubicacion {
+      background: #fff; border-radius: 20px;
+      width: 100%; max-width: 500px;
+      overflow: hidden;
+    }
+    .modal-ubicacion-header {
+      padding: 20px 20px 12px;
+    }
+    .modal-ubicacion-titulo {
+      font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px;
+    }
+    .modal-ubicacion-sub {
+      font-size: 14px; color: #666; line-height: 1.5;
+    }
+    #mapa-ubicacion {
+      height: 280px; width: 100%;
+    }
+    .modal-ubicacion-footer {
+      padding: 16px 20px;
+    }
+    .pin-centro {
       position: absolute;
-      top: -5px; left: -5px;
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      background: rgba(251, 146, 60, 0.5);
-      animation: pulse 1.4s ease-in-out infinite;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -100%);
+      z-index: 1000;
+      pointer-events: none;
+      font-size: 32px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    #mapa-ubicacion-wrap {
+      position: relative;
+    }
+    .btn-listo {
+      width: 100%; padding: 14px;
+      background: #2a9d8f; color: #fff; border: none;
+      border-radius: 12px; font-size: 16px; font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-listo:hover { background: #238a7e; }
+
+    @keyframes pulse {
+      0%{transform:scale(1);opacity:0.8}
+      50%{transform:scale(1.5);opacity:0.3}
+      100%{transform:scale(1);opacity:0.8}
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <script>
-    var params = new URLSearchParams(window.location.search);
-    var lat = parseFloat(params.get('lat')) || -34.6037;
-    var lng = parseFloat(params.get('lng')) || -58.3816;
-    var localesRaw = params.get('locales');
-    var visitadosRaw = params.get('visitados');
-    var zoom = parseInt(params.get('zoom')) || 1;
-    var locales = [];
-    var visitados = [];
-    try { locales = JSON.parse(decodeURIComponent(localesRaw || '[]')); } catch(e) {}
-    try { visitados = JSON.parse(decodeURIComponent(visitadosRaw || '[]')); } catch(e) {}
 
-    // Tamaños según zoom
-    var fzNombre = (14 * zoom) + 'px';
-    var fzCategoria = (12 * zoom) + 'px';
-    var fzBoton = (14 * zoom) + 'px';
-    var paddingBoton = (10 * zoom) + 'px 0';
-    var minAncho = (160 * zoom) + 'px';
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon"><div class="logo-circle"><div class="logo-pin"></div></div></div>
+    <span class="logo-text">🗺️ Del Barrio</span>
+  </a>
+  <div class="header-btns">
+    <button class="btn-info" onclick="abrirContacto()">i</button>
+    <a class="btn-duenos" href="duenos.html">DUEÑOS</a>
+  </div>
+</header>
 
-    var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: ''
-    }).addTo(map);
+<div class="subheader">
+  <div class="search-row">
+    <span style="color:rgba(255,255,255,0.7);margin-right:8px;">🔍</span>
+    <input type="text" id="buscador" placeholder="Buscar por nombre o etiqueta..." oninput="onBusqueda()" autocapitalize="none">
+    <button class="search-clear" id="search-clear" onclick="limpiarBusqueda()">✕</button>
+  </div>
+  <div class="vista-toggle">
+    <button class="vista-btn activo" id="btn-vista-mapa" onclick="setVista('mapa', this)">🗺 Mapa</button>
+    <button class="vista-btn" id="btn-vista-lista" onclick="setVista('lista', this)">☰ Lista</button>
+  </div>
+</div>
 
-    // Pin del usuario
-    var userIcon = L.divIcon({
+<div id="mapa-wrap">
+  <div id="mapa"></div>
+  <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
+  <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
+  <button id="btn-mi-ubicacion" onclick="abrirUbicacion()">📍 Mi ubicación</button>
+</div>
+
+<div id="lista-wrap">
+  <div class="filtro-scroll" id="filtro-scroll"></div>
+  <div class="lista-contenido">
+    <div class="resultados-texto" id="resultados-texto" style="display:none"></div>
+    <div id="lista-items"></div>
+  </div>
+</div>
+
+<!-- Modal filtro -->
+<div class="overlay" id="overlay-filtro" onclick="if(event.target===this)cerrarFiltro()">
+  <div class="modal-box">
+    <div class="modal-titulo">Filtrar por categoría</div>
+    <div class="modal-grid" id="modal-grid"></div>
+  </div>
+</div>
+
+<!-- Modal contacto -->
+<div class="overlay" id="overlay-contacto" onclick="if(event.target===this)cerrarContacto()">
+  <div class="modal-contacto">
+    <div class="modal-contacto-titulo">ℹ️ Contacto</div>
+    <div class="modal-contacto-texto">¿Tenés consultas, sugerencias o querés reportar un problema?</div>
+    <a class="modal-contacto-btn" href="mailto:dbshops2026@gmail.com?subject=Consulta Del Barrio">✉️ dbshops2026@gmail.com</a>
+    <div class="modal-links">
+      <a href="privacidad.html">Política de privacidad</a>
+      <a href="delete-account.html">Eliminar cuenta</a>
+    </div>
+    <button class="modal-cerrar" onclick="cerrarContacto()">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal ubicacion -->
+<div id="overlay-ubicacion">
+  <div class="modal-ubicacion">
+    <div class="modal-ubicacion-header">
+      <div class="modal-ubicacion-titulo">📍 ¿Dónde estás?</div>
+      <div class="modal-ubicacion-sub">Mové el mapa para centrar el pin en tu ubicación</div>
+    </div>
+    <div id="mapa-ubicacion-wrap">
+      <div id="mapa-ubicacion"></div>
+      <div class="pin-centro">📍</div>
+    </div>
+    <div class="modal-ubicacion-footer">
+      <button class="btn-listo" onclick="confirmarUbicacion()">Listo — ver locales cerca</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let CATEGORIAS = ['Todos'];
+  let locales = [];
+  let filtro = 'Todos';
+  let busqueda = '';
+  let vista = 'mapa';
+  let markers = [];
+  let soloFavoritos = false;
+  let mapa;
+  let mapaUbicacion;
+  let miUbicacion = null;
+  let markerMiUbicacion = null;
+
+  const CABA_CENTER = [-34.6037, -58.3816];
+
+  // ── LocalStorage ──────────────────────────────────────────────────────────
+  function getVisitados() {
+    try { return new Set(JSON.parse(localStorage.getItem('locales_visitados') || '[]')); } catch { return new Set(); }
+  }
+  function getFavoritos() {
+    try { return new Set(JSON.parse(localStorage.getItem('locales_favoritos') || '[]')); } catch { return new Set(); }
+  }
+  function toggleFavoritoLocal(id) {
+    const favs = getFavoritos();
+    const idStr = String(id);
+    if (favs.has(idStr)) favs.delete(idStr); else favs.add(idStr);
+    localStorage.setItem('locales_favoritos', JSON.stringify([...favs]));
+    renderMapa();
+    renderLista();
+  }
+
+  // ── Mapa principal ────────────────────────────────────────────────────────
+  mapa = L.map('mapa', { zoomControl: true }).setView(CABA_CENTER, 14);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapa);
+
+  // ── Mapa ubicacion ────────────────────────────────────────────────────────
+  function iniciarMapaUbicacion() {
+    if (mapaUbicacion) {
+      mapaUbicacion.invalidateSize();
+      return;
+    }
+    const centro = miUbicacion || CABA_CENTER;
+    mapaUbicacion = L.map('mapa-ubicacion', { zoomControl: true }).setView(centro, 15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapaUbicacion);
+  }
+
+  function abrirUbicacion() {
+    document.getElementById('overlay-ubicacion').classList.add('visible');
+    setTimeout(() => {
+      iniciarMapaUbicacion();
+      mapaUbicacion.invalidateSize();
+    }, 100);
+  }
+
+  function confirmarUbicacion() {
+    const centro = mapaUbicacion.getCenter();
+    miUbicacion = [centro.lat, centro.lng];
+
+    // Actualizar pin de usuario en mapa principal
+    if (markerMiUbicacion) mapa.removeLayer(markerMiUbicacion);
+    const userIcon = L.divIcon({
       html: '<div style="width:18px;height:18px;background:#22c55e;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(34,197,94,0.3);"></div>',
       iconSize: [18, 18], iconAnchor: [9, 9], className: ''
     });
-    L.marker([lat, lng], { icon: userIcon }).addTo(map);
+    markerMiUbicacion = L.marker(miUbicacion, { icon: userIcon }).addTo(mapa);
+    mapa.setView(miUbicacion, 15);
 
-    // Pines de locales
-    locales.forEach(function(l) {
+    document.getElementById('overlay-ubicacion').classList.remove('visible');
+  }
+
+  // ── Cargar datos ──────────────────────────────────────────────────────────
+  async function cargar() {
+    const [{ data: cats }, { data }] = await Promise.all([
+      db.from('categorias').select('nombre').order('orden'),
+      db.from('locales').select('*').eq('activo', true).eq('suspendido', false)
+    ]);
+    if (cats) CATEGORIAS = ['Todos', ...cats.map(c => c.nombre)];
+    locales = data || [];
+
+    renderMapa();
+    renderLista();
+    renderFiltroScroll();
+    renderModalGrid();
+
+    // Abrir modal de ubicacion al cargar
+    abrirUbicacion();
+  }
+
+  // ── Filtrado ──────────────────────────────────────────────────────────────
+  function localesFiltrados() {
+    const favoritos = getFavoritos();
+    return locales.filter(l => {
+      if (soloFavoritos && !favoritos.has(String(l.id))) return false;
+      if (filtro !== 'Todos') {
+        const cumple = Array.isArray(l.categoria) ? l.categoria.includes(filtro) : l.categoria === filtro;
+        if (!cumple) return false;
+      }
+      if (busqueda.trim().length > 0) {
+        const t = busqueda.trim().toLowerCase();
+        const enNombre = (l.nombre || '').toLowerCase().includes(t);
+        const enEtiquetas = Array.isArray(l.etiquetas) ? l.etiquetas.some(e => e.toLowerCase().includes(t)) : false;
+        const enDesc = (l.descripcion || '').toLowerCase().includes(t);
+        if (!enNombre && !enEtiquetas && !enDesc) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── Render mapa ───────────────────────────────────────────────────────────
+  function renderMapa() {
+    markers.forEach(m => mapa.removeLayer(m));
+    markers = [];
+    const visitados = getVisitados();
+    const favoritos = getFavoritos();
+
+    localesFiltrados().forEach(l => {
       if (!l.lat || !l.lng) return;
-      var yaVisitado = visitados.indexOf(String(l.id)) !== -1;
-      var pinHtml = yaVisitado
+      const yaVisitado = visitados.has(String(l.id));
+      const color = yaVisitado ? '#2563eb' : '#fb923c';
+
+      const pinHtml = yaVisitado
         ? '<div style="width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>'
         : '<div style="position:relative;width:14px;height:14px;">' +
-            '<div class="pin-nuevo-ring"></div>' +
-            '<div style="width:14px;height:14px;background:#fb923c;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;z-index:1;"></div>' +
+            '<div style="position:absolute;top:-5px;left:-5px;width:24px;height:24px;border-radius:50%;background:rgba(251,146,60,0.4);animation:pulse 1.4s ease-in-out infinite;"></div>' +
+            '<div style="width:14px;height:14px;background:#fb923c;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);position:relative;z-index:1;"></div>' +
           '</div>';
-      var icono = L.divIcon({
-        html: pinHtml,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-        className: ''
-      });
-      var popupColor = yaVisitado ? '#2563eb' : '#fb923c';
-      L.marker([l.lat, l.lng], { icon: icono }).addTo(map)
-        .bindPopup(
-          '<div style="text-align:center;padding:8px;min-width:' + minAncho + ';">' +
-            '<strong style="font-size:' + fzNombre + ';">' + l.nombre + '</strong><br>' +
-            '<small style="color:#888;font-size:' + fzCategoria + ';">' + l.categoria + '</small><br><br>' +
-            '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" ' +
-            'style="background:' + popupColor + ';color:white;border:none;padding:' + paddingBoton + ';border-radius:8px;width:100%;font-weight:600;font-size:' + fzBoton + ';">Ver local</button>' +
-          '</div>'
-        );
+
+      const marker = L.marker([parseFloat(l.lat), parseFloat(l.lng)], {
+        icon: L.divIcon({ html: pinHtml, iconSize: [14,14], iconAnchor: [7,7], className: '' })
+      }).addTo(mapa);
+
+      marker.bindPopup(
+        '<div style="text-align:center;padding:8px;min-width:180px;">' +
+          '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
+          '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+          '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:14px;">Ver local</a>' +
+        '</div>'
+      );
+      markers.push(marker);
     });
-  </script>
+  }
+
+  // ── Render lista ──────────────────────────────────────────────────────────
+  function renderLista() {
+    const items = localesFiltrados();
+    const favoritos = getFavoritos();
+
+    const resTexto = document.getElementById('resultados-texto');
+    if (busqueda.trim().length > 0) {
+      resTexto.style.display = 'block';
+      resTexto.textContent = items.length === 0
+        ? `Sin resultados para "${busqueda}"`
+        : `${items.length} resultado${items.length === 1 ? '' : 's'} para "${busqueda}"`;
+    } else {
+      resTexto.style.display = 'none';
+    }
+
+    const cont = document.getElementById('lista-items');
+    if (items.length === 0) {
+      cont.innerHTML = '<div class="sin-locales">' + (soloFavoritos ? 'No tenés favoritos todavía.' : 'No hay locales en esta categoría.') + '</div>';
+      return;
+    }
+
+    cont.innerHTML = items.map(l => {
+      const esFav = favoritos.has(String(l.id));
+      const cats = Array.isArray(l.categoria) ? l.categoria.join(' · ') : (l.categoria || '');
+      return `<a class="card" href="local.html?id=${l.id}">
+        <div class="card-header">
+          <span class="card-nombre">${l.nombre}</span>
+          <span class="card-fav" onclick="event.preventDefault();toggleFavoritoLocal('${l.id}')">${esFav ? '❤️' : '🤍'}</span>
+        </div>
+        <div class="card-categoria">${cats} · ${l.direccion || ''}</div>
+      </a>`;
+    }).join('');
+  }
+
+  // ── Render filtros ────────────────────────────────────────────────────────
+  function renderFiltroScroll() {
+    document.getElementById('filtro-scroll').innerHTML = CATEGORIAS.map(cat =>
+      `<button class="filtro-pill ${filtro === cat ? 'activo' : ''}" onclick="setFiltro('${cat.replace(/'/g, "\\'")}')">${cat}</button>`
+    ).join('');
+  }
+
+  function renderModalGrid() {
+    document.getElementById('modal-grid').innerHTML = CATEGORIAS.map(cat =>
+      `<button class="modal-pill ${filtro === cat ? 'activo' : ''}" onclick="setFiltroMapa('${cat.replace(/'/g, "\\'")}')">${cat}</button>`
+    ).join('');
+  }
+
+  // ── Acciones ──────────────────────────────────────────────────────────────
+  function setFiltro(cat) {
+    filtro = cat;
+    renderFiltroScroll();
+    renderLista();
+    renderMapa();
+  }
+
+  function setFiltroMapa(cat) {
+    filtro = cat;
+    const btn = document.getElementById('btn-filtro-mapa');
+    btn.textContent = cat === 'Todos' ? '⚙ Filtrar' : '⚙ ' + cat;
+    btn.classList.toggle('activo', cat !== 'Todos');
+    renderMapa();
+    renderModalGrid();
+    cerrarFiltro();
+  }
+
+  function onBusqueda() {
+    busqueda = document.getElementById('buscador').value;
+    document.getElementById('search-clear').style.display = busqueda.length > 0 ? 'block' : 'none';
+    if (vista === 'mapa') setVista('lista', document.getElementById('btn-vista-lista'));
+    renderLista();
+    renderMapa();
+  }
+
+  function limpiarBusqueda() {
+    busqueda = '';
+    document.getElementById('buscador').value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    renderLista();
+    renderMapa();
+  }
+
+  function toggleFavoritos() {
+    soloFavoritos = !soloFavoritos;
+    const btn = document.getElementById('btn-favoritos-mapa');
+    btn.textContent = soloFavoritos ? `❤️ Favoritos (${getFavoritos().size})` : '🤍 Favoritos';
+    btn.classList.toggle('activo', soloFavoritos);
+    renderMapa();
+    renderLista();
+  }
+
+  function setVista(v, btn) {
+    vista = v;
+    document.querySelectorAll('.vista-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    document.getElementById('mapa-wrap').style.display = v === 'mapa' ? 'block' : 'none';
+    document.getElementById('lista-wrap').style.display = v === 'lista' ? 'block' : 'none';
+    if (v === 'mapa') setTimeout(() => mapa.invalidateSize(), 100);
+  }
+
+  function abrirFiltro() { document.getElementById('overlay-filtro').classList.add('visible'); }
+  function cerrarFiltro() { document.getElementById('overlay-filtro').classList.remove('visible'); }
+  function abrirContacto() { document.getElementById('overlay-contacto').classList.add('visible'); }
+  function cerrarContacto() { document.getElementById('overlay-contacto').classList.remove('visible'); }
+
+  cargar();
+</script>
 </body>
 </html>
