@@ -219,7 +219,6 @@
 </div>
 
 <script>
-  // Detectar si viene desde la app
   const urlParams = new URLSearchParams(window.location.search);
   const esApp = urlParams.has('locales');
   if (esApp) {
@@ -241,6 +240,7 @@
   let markers = [];
   let soloFavoritos = false;
   let mapa;
+  let markerUsuario = null;
 
   function getVisitados() {
     try { return new Set(JSON.parse(localStorage.getItem('locales_visitados') || '[]')); } catch { return new Set(); }
@@ -257,11 +257,19 @@
     renderLista();
   }
 
-  mapa = L.map('mapa', { zoomControl: true }).setView([-34.6037, -58.3816], 14);
+  mapa = L.map('mapa', { zoomControl: false }).setView([-34.6037, -58.3816], 14);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapa);
 
+  function pintarUsuario(lat, lng) {
+    if (markerUsuario) mapa.removeLayer(markerUsuario);
+    const pinUsuario = '<div style="width:16px;height:16px;background:#2a9d8f;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>';
+    markerUsuario = L.marker([lat, lng], {
+      icon: L.divIcon({ html: pinUsuario, iconSize: [16,16], iconAnchor: [8,8], className: '' }),
+      zIndexOffset: 1000
+    }).addTo(mapa);
+  }
+
   async function cargar() {
-    // Si viene desde la app, usar los locales que manda por URL
     if (esApp) {
       try {
         const localesParam = urlParams.get('locales');
@@ -275,6 +283,7 @@
         localStorage.setItem('locales_visitados', JSON.stringify(visitadosArr));
 
         mapa.setView([lat, lng], 15 + zoom);
+        pintarUsuario(lat, lng);
         renderMapa();
         return;
       } catch (e) {
@@ -282,7 +291,6 @@
       }
     }
 
-    // Si viene desde la web, cargar de Supabase
     const [{ data: cats }, { data }] = await Promise.all([
       db.from('categorias').select('nombre').order('orden'),
       db.from('locales').select('*').eq('activo', true).eq('suspendido', false)
@@ -343,8 +351,6 @@
         icon: L.divIcon({ html: pinHtml, iconSize: [14,14], iconAnchor: [7,7], className: '' })
       }).addTo(mapa);
 
-      // En la app, al tocar un pin envía mensaje a React Native
-      // En la web, abre el popup normal
       if (esApp) {
         marker.on('click', () => {
           window.ReactNativeWebView.postMessage(String(l.id));
@@ -364,7 +370,7 @@
   }
 
   function renderLista() {
-    if (esApp) return; // En la app la lista la maneja React Native
+    if (esApp) return;
     const items = localesFiltrados();
     const favoritos = getFavoritos();
 
