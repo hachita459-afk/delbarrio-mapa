@@ -11,7 +11,6 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f8f8; }
 
-    /* ── HEADER ── */
     header {
       background: #2a9d8f;
       padding: 0 16px;
@@ -42,7 +41,6 @@
       font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
     }
 
-    /* ── SUBHEADER ── */
     .subheader {
       background: #2a9d8f;
       padding: 0 16px 12px;
@@ -70,7 +68,6 @@
     }
     .vista-btn.activo { background: rgba(255,255,255,0.35); color: #fff; }
 
-    /* ── MAPA ── */
     #mapa-wrap { position: relative; }
     #mapa { height: calc(100vh - 136px); width: 100%; }
     #btn-filtro-mapa {
@@ -87,14 +84,7 @@
       cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     #btn-favoritos-mapa.activo { background: #e63939; color: #fff; }
-    #btn-mi-ubicacion {
-      position: absolute; bottom: 24px; right: 16px; z-index: 500;
-      background: #fff; border: none; padding: 8px 16px;
-      border-radius: 20px; font-size: 14px; font-weight: 600;
-      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
 
-    /* ── LISTA ── */
     #lista-wrap { display: none; }
     .filtro-scroll {
       padding: 12px 16px; background: #fff; border-bottom: 1px solid #eee;
@@ -125,7 +115,6 @@
 
     .sin-locales { text-align: center; padding: 60px 20px; color: #aaa; font-size: 15px; }
 
-    /* ── MODALES ── */
     .overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.4); z-index: 2000;
@@ -160,54 +149,6 @@
     .modal-links { display: flex; gap: 16px; justify-content: center; margin-bottom: 12px; }
     .modal-links a { font-size: 13px; color: #2a9d8f; text-decoration: none; }
     .modal-cerrar { background: none; border: none; color: #aaa; font-size: 14px; cursor: pointer; padding: 8px; }
-
-    /* ── MODAL UBICACION ── */
-    #overlay-ubicacion {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6); z-index: 3000;
-      align-items: center; justify-content: center;
-      padding: 16px;
-    }
-    #overlay-ubicacion.visible { display: flex; }
-    .modal-ubicacion {
-      background: #fff; border-radius: 20px;
-      width: 100%; max-width: 500px;
-      overflow: hidden;
-    }
-    .modal-ubicacion-header {
-      padding: 20px 20px 12px;
-    }
-    .modal-ubicacion-titulo {
-      font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px;
-    }
-    .modal-ubicacion-sub {
-      font-size: 14px; color: #666; line-height: 1.5;
-    }
-    #mapa-ubicacion {
-      height: 280px; width: 100%;
-    }
-    .modal-ubicacion-footer {
-      padding: 16px 20px;
-    }
-    .pin-centro {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -100%);
-      z-index: 1000;
-      pointer-events: none;
-      font-size: 32px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    }
-    #mapa-ubicacion-wrap {
-      position: relative;
-    }
-    .btn-listo {
-      width: 100%; padding: 14px;
-      background: #2a9d8f; color: #fff; border: none;
-      border-radius: 12px; font-size: 16px; font-weight: 700;
-      cursor: pointer;
-    }
-    .btn-listo:hover { background: #238a7e; }
 
     @keyframes pulse {
       0%{transform:scale(1);opacity:0.8}
@@ -245,7 +186,6 @@
   <div id="mapa"></div>
   <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
   <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
-  <button id="btn-mi-ubicacion" onclick="abrirUbicacion()">📍 Mi ubicación</button>
 </div>
 
 <div id="lista-wrap">
@@ -278,23 +218,6 @@
   </div>
 </div>
 
-<!-- Modal ubicacion -->
-<div id="overlay-ubicacion">
-  <div class="modal-ubicacion">
-    <div class="modal-ubicacion-header">
-      <div class="modal-ubicacion-titulo">📍 ¿Dónde estás?</div>
-      <div class="modal-ubicacion-sub">Mové el mapa para centrar el pin en tu ubicación</div>
-    </div>
-    <div id="mapa-ubicacion-wrap">
-      <div id="mapa-ubicacion"></div>
-      <div class="pin-centro">📍</div>
-    </div>
-    <div class="modal-ubicacion-footer">
-      <button class="btn-listo" onclick="confirmarUbicacion()">Listo — ver locales cerca</button>
-    </div>
-  </div>
-</div>
-
 <script>
   const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
@@ -309,13 +232,7 @@
   let markers = [];
   let soloFavoritos = false;
   let mapa;
-  let mapaUbicacion;
-  let miUbicacion = null;
-  let markerMiUbicacion = null;
 
-  const CABA_CENTER = [-34.6037, -58.3816];
-
-  // ── LocalStorage ──────────────────────────────────────────────────────────
   function getVisitados() {
     try { return new Set(JSON.parse(localStorage.getItem('locales_visitados') || '[]')); } catch { return new Set(); }
   }
@@ -331,46 +248,9 @@
     renderLista();
   }
 
-  // ── Mapa principal ────────────────────────────────────────────────────────
-  mapa = L.map('mapa', { zoomControl: true }).setView(CABA_CENTER, 14);
+  mapa = L.map('mapa', { zoomControl: true }).setView([-34.6037, -58.3816], 14);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapa);
 
-  // ── Mapa ubicacion ────────────────────────────────────────────────────────
-  function iniciarMapaUbicacion() {
-    if (mapaUbicacion) {
-      mapaUbicacion.invalidateSize();
-      return;
-    }
-    const centro = miUbicacion || CABA_CENTER;
-    mapaUbicacion = L.map('mapa-ubicacion', { zoomControl: true }).setView(centro, 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '' }).addTo(mapaUbicacion);
-  }
-
-  function abrirUbicacion() {
-    document.getElementById('overlay-ubicacion').classList.add('visible');
-    setTimeout(() => {
-      iniciarMapaUbicacion();
-      mapaUbicacion.invalidateSize();
-    }, 100);
-  }
-
-  function confirmarUbicacion() {
-    const centro = mapaUbicacion.getCenter();
-    miUbicacion = [centro.lat, centro.lng];
-
-    // Actualizar pin de usuario en mapa principal
-    if (markerMiUbicacion) mapa.removeLayer(markerMiUbicacion);
-    const userIcon = L.divIcon({
-      html: '<div style="width:18px;height:18px;background:#22c55e;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(34,197,94,0.3);"></div>',
-      iconSize: [18, 18], iconAnchor: [9, 9], className: ''
-    });
-    markerMiUbicacion = L.marker(miUbicacion, { icon: userIcon }).addTo(mapa);
-    mapa.setView(miUbicacion, 15);
-
-    document.getElementById('overlay-ubicacion').classList.remove('visible');
-  }
-
-  // ── Cargar datos ──────────────────────────────────────────────────────────
   async function cargar() {
     const [{ data: cats }, { data }] = await Promise.all([
       db.from('categorias').select('nombre').order('orden'),
@@ -379,16 +259,19 @@
     if (cats) CATEGORIAS = ['Todos', ...cats.map(c => c.nombre)];
     locales = data || [];
 
+    const conCoords = locales.filter(l => l.lat && l.lng);
+    if (conCoords.length > 0) {
+      const avgLat = conCoords.reduce((s, l) => s + parseFloat(l.lat), 0) / conCoords.length;
+      const avgLng = conCoords.reduce((s, l) => s + parseFloat(l.lng), 0) / conCoords.length;
+      mapa.setView([avgLat, avgLng], 15);
+    }
+
     renderMapa();
     renderLista();
     renderFiltroScroll();
     renderModalGrid();
-
-    // Abrir modal de ubicacion al cargar
-    abrirUbicacion();
   }
 
-  // ── Filtrado ──────────────────────────────────────────────────────────────
   function localesFiltrados() {
     const favoritos = getFavoritos();
     return locales.filter(l => {
@@ -408,7 +291,6 @@
     });
   }
 
-  // ── Render mapa ───────────────────────────────────────────────────────────
   function renderMapa() {
     markers.forEach(m => mapa.removeLayer(m));
     markers = [];
@@ -442,7 +324,6 @@
     });
   }
 
-  // ── Render lista ──────────────────────────────────────────────────────────
   function renderLista() {
     const items = localesFiltrados();
     const favoritos = getFavoritos();
@@ -476,7 +357,6 @@
     }).join('');
   }
 
-  // ── Render filtros ────────────────────────────────────────────────────────
   function renderFiltroScroll() {
     document.getElementById('filtro-scroll').innerHTML = CATEGORIAS.map(cat =>
       `<button class="filtro-pill ${filtro === cat ? 'activo' : ''}" onclick="setFiltro('${cat.replace(/'/g, "\\'")}')">${cat}</button>`
@@ -489,7 +369,6 @@
     ).join('');
   }
 
-  // ── Acciones ──────────────────────────────────────────────────────────────
   function setFiltro(cat) {
     filtro = cat;
     renderFiltroScroll();
