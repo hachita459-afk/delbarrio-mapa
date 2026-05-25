@@ -348,9 +348,13 @@
       }).addTo(mapa);
 
       if (esApp) {
-        marker.on('click', () => {
-          window.ReactNativeWebView.postMessage(String(l.id));
-        });
+        marker.bindPopup(
+          '<div style="text-align:center;padding:8px;min-width:180px;">' +
+            '<strong style="font-size:15px;">' + l.nombre + '</strong><br>' +
+            '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" style="background:#2a9d8f;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:14px;cursor:pointer;">Ver local</button>' +
+          '</div>'
+        );
       } else {
         marker.bindPopup(
           '<div style="text-align:center;padding:8px;min-width:180px;">' +
