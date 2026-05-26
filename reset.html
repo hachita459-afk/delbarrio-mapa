@@ -235,6 +235,302 @@
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  // Leer token_hash de la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const TOKEN_HASH = urlParams.get('token_hash');
+  const TYPE = urlParams.get('type');
+
+  if (!TOKEN_HASH || TYPE !== 'recovery') {
+    document.getElementById('mensaje').textContent = 'Link inválido. Pedí un nuevo email desde la app.';
+    document.getElementById('mensaje').className = 'mensaje error';
+    document.getElementById('btn-guardar').disabled = true;
+  }
+
+  function toggleVer(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁';
+    }
+  }
+
+  function mostrarMensaje(texto, tipo) {
+    const el = document.getElementById('mensaje');
+    el.textContent = texto;
+    el.className = 'mensaje ' + tipo;
+  }
+
+  async function guardarPassword() {
+    const pass1 = document.getElementById('pass1').value.trim();
+    const pass2 = document.getElementById('pass2').value.trim();
+    const btn = document.getElementById('btn-guardar');
+
+    if (!pass1 || !pass2) { mostrarMensaje('Completá ambos campos.', 'error'); return; }
+    if (pass1.length < 6) { mostrarMensaje('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+    if (pass1 !== pass2) { mostrarMensaje('Las contraseñas no coinciden.', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Guardando...';
+
+    // Verificar OTP y obtener sesión
+    const { data: verifyData, error: verifyError } = await client.auth.verifyOtp({
+      token_hash: TOKEN_HASH,
+      type: 'recovery'
+    });
+
+    if (verifyError || !verifyData.session) {
+      mostrarMensaje('El link expiró. Pedí uno nuevo desde la app.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Guardar nueva contraseña';
+      return;
+    }
+
+    // Actualizar contraseña con la sesión activa
+    const { error: updateError } = await client.auth.updateUser({ password: pass1 });
+
+    if (updateError) {
+      mostrarMensaje('No se pudo actualizar la contraseña: ' + updateError.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Guardar nueva contraseña';
+    } else {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+    }
+  }
+</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      background: #1a3a5c;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .logo svg { width: 36px; height: 36px; fill: #fff; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a3a5c;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitulo {
+      font-size: 14px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid #ddd;
+      border-radius: 12px;
+      background: #fafafa;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrap:focus-within { border-color: #4ab8d8; background: #fff; }
+
+    input[type="password"], input[type="text"] {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 14px 16px;
+      font-size: 16px;
+      color: #1a3a5c;
+      outline: none;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 16px;
+      font-size: 22px;
+      color: #666;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-primary { background: #1a3a5c; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #153050; }
+
+    .mensaje {
+      display: none;
+      text-align: center;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 16px;
+    }
+
+    .mensaje.error { background: #fdecea; color: #c0392b; display: block; }
+    .mensaje.exito { background: #eafaf1; color: #1e8449; display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .volver {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #aaa;
+      text-decoration: none;
+    }
+
+    .success-view {
+      display: none;
+      text-align: center;
+    }
+
+    .success-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .success-view h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a3a5c;
+      margin-bottom: 8px;
+    }
+
+    .success-view p {
+      font-size: 14px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+    </svg>
+  </div>
+
+  <div id="form-view">
+    <h1>Nueva contraseña</h1>
+    <p class="subtitulo">Elegí una contraseña segura para tu cuenta de Del Barrio</p>
+
+    <div class="field">
+      <label for="pass1">Nueva contraseña</label>
+      <div class="input-wrap">
+        <input type="password" id="pass1" placeholder="Mínimo 6 caracteres" />
+        <button class="toggle-btn" onclick="toggleVer('pass1', this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="pass2">Confirmar contraseña</label>
+      <div class="input-wrap">
+        <input type="password" id="pass2" placeholder="Repetí la contraseña" />
+        <button class="toggle-btn" onclick="toggleVer('pass2', this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <div class="mensaje" id="mensaje"></div>
+
+    <button class="btn btn-primary" id="btn-guardar" onclick="guardarPassword()">
+      Guardar nueva contraseña
+    </button>
+
+    <a href="https://hachita459-afk.github.io/delbarrio-web/" class="volver">← Volver al inicio</a>
+  </div>
+
+  <div class="success-view" id="success-view">
+    <div class="success-icon">✅</div>
+    <h2>¡Contraseña actualizada!</h2>
+    <p>Ya podés ingresar a Del Barrio con tu nueva contraseña.</p>
+    <a href="https://hachita459-afk.github.io/delbarrio-web/" class="btn btn-primary" style="display:inline-block; text-decoration:none; padding: 14px 32px; width: auto;">
+      Ir al inicio
+    </a>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_KEY);
+
   let sesionLista = false;
 
   async function iniciarSesion() {
