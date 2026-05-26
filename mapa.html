@@ -496,6 +496,14 @@
     const btn = document.getElementById('btn-ubicacion');
     btn.classList.add('buscando');
     btn.textContent = '⏳';
+
+    if (esApp) {
+      // Pedir ubicación a React Native
+      window.ReactNativeWebView.postMessage('pedir_ubicacion');
+      // La respuesta llega via window.recibirUbicacion()
+      return;
+    }
+
     if (!navigator.geolocation) {
       btn.classList.remove('buscando');
       btn.textContent = '📍';
@@ -517,6 +525,15 @@
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
+
+  // Llamada por React Native con la ubicación actual
+  window.recibirUbicacion = function(lat, lng) {
+    const btn = document.getElementById('btn-ubicacion');
+    btn.classList.remove('buscando');
+    btn.textContent = '📍';
+    mapa.setView([lat, lng], 16);
+    pintarUsuario(lat, lng);
+  };
 
   cargar();
 </script>
