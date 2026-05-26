@@ -147,6 +147,26 @@
     .modal-links a { font-size: 13px; color: #2a9d8f; text-decoration: none; }
     .modal-cerrar { background: none; border: none; color: #aaa; font-size: 14px; cursor: pointer; padding: 8px; }
 
+    #btn-ubicacion {
+      position: absolute;
+      bottom: 32px;
+      right: 16px;
+      z-index: 500;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #btn-ubicacion.buscando { background: #f0faf9; }
+    #btn-ubicacion:active { background: #e0f2f1; }
+
     @keyframes pulse {
       0%{transform:scale(1);opacity:0.8}
       50%{transform:scale(1.5);opacity:0.3}
@@ -183,6 +203,7 @@
   <div id="mapa"></div>
   <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
   <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
+  <button id="btn-ubicacion" onclick="centrarEnMi()" title="Mi ubicación">📍</button>
 </div>
 
 <div id="lista-wrap">
@@ -470,6 +491,32 @@
   function cerrarFiltro() { document.getElementById('overlay-filtro').classList.remove('visible'); }
   function abrirContacto() { document.getElementById('overlay-contacto').classList.add('visible'); }
   function cerrarContacto() { document.getElementById('overlay-contacto').classList.remove('visible'); }
+
+  function centrarEnMi() {
+    const btn = document.getElementById('btn-ubicacion');
+    btn.classList.add('buscando');
+    btn.textContent = '⏳';
+    if (!navigator.geolocation) {
+      btn.classList.remove('buscando');
+      btn.textContent = '📍';
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        mapa.setView([pos.coords.latitude, pos.coords.longitude], 16);
+        pintarUsuario(pos.coords.latitude, pos.coords.longitude);
+        btn.classList.remove('buscando');
+        btn.textContent = '📍';
+      },
+      () => {
+        btn.classList.remove('buscando');
+        btn.textContent = '📍';
+        alert('No se pudo obtener tu ubicación. Revisá los permisos.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   cargar();
 </script>
