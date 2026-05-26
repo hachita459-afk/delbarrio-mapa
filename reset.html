@@ -92,10 +92,11 @@
       background: none;
       border: none;
       cursor: pointer;
-      padding: 0 14px;
-      font-size: 18px;
-      color: #aaa;
+      padding: 0 16px;
+      font-size: 22px;
+      color: #666;
       line-height: 1;
+      flex-shrink: 0;
     }
 
     .btn {
@@ -234,8 +235,26 @@
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Supabase detecta automáticamente el token del hash de la URL
-  // y restaura la sesión al cargar la página
+  async function iniciarSesionDesdeHash() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (access_token && refresh_token) {
+      const { error } = await client.auth.setSession({ access_token, refresh_token });
+      if (error) {
+        document.getElementById('mensaje').textContent = 'El link expiró. Pedí uno nuevo desde la app.';
+        document.getElementById('mensaje').className = 'mensaje error';
+        document.getElementById('btn-guardar').disabled = true;
+      }
+    } else {
+      document.getElementById('mensaje').textContent = 'Link inválido. Pedí un nuevo email desde la app.';
+      document.getElementById('mensaje').className = 'mensaje error';
+      document.getElementById('btn-guardar').disabled = true;
+    }
+  }
+
+  iniciarSesionDesdeHash();
 
   function toggleVer(inputId, btn) {
     const input = document.getElementById(inputId);
