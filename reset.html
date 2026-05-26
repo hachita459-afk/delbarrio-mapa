@@ -235,20 +235,23 @@
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  let sesionLista = false;
+
   async function iniciarSesion() {
     const params = new URLSearchParams(window.location.search);
     const token_hash = params.get('token_hash');
     const type = params.get('type');
 
     if (token_hash && type === 'recovery') {
-      const { error } = await client.auth.verifyOtp({ token_hash, type: 'recovery' });
+      const { data, error } = await client.auth.verifyOtp({ token_hash, type: 'recovery' });
       if (error) {
         document.getElementById('mensaje').textContent = 'El link expiró. Pedí uno nuevo desde la app.';
         document.getElementById('mensaje').className = 'mensaje error';
         document.getElementById('btn-guardar').disabled = true;
+      } else {
+        sesionLista = true;
       }
     } else {
-      // Intentar también con hash por compatibilidad
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
       const access_token = hashParams.get('access_token');
@@ -259,6 +262,8 @@
           document.getElementById('mensaje').textContent = 'El link expiró. Pedí uno nuevo desde la app.';
           document.getElementById('mensaje').className = 'mensaje error';
           document.getElementById('btn-guardar').disabled = true;
+        } else {
+          sesionLista = true;
         }
       } else {
         document.getElementById('mensaje').textContent = 'Link inválido. Pedí un nuevo email desde la app.';
@@ -305,8 +310,21 @@
       return;
     }
 
+    if (!sesionLista) {
+      mostrarMensaje('Sesión inválida. Pedí un nuevo email desde la app.', 'error');
+      return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Guardando...';
+
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) {
+      mostrarMensaje('La sesión expiró. Pedí un nuevo email desde la app.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Guardar nueva contraseña';
+      return;
+    }
 
     const { error } = await client.auth.updateUser({ password: pass1 });
 
