@@ -235,26 +235,40 @@
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  async function iniciarSesionDesdeHash() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    if (access_token && refresh_token) {
-      const { error } = await client.auth.setSession({ access_token, refresh_token });
+  async function iniciarSesion() {
+    const params = new URLSearchParams(window.location.search);
+    const token_hash = params.get('token_hash');
+    const type = params.get('type');
+
+    if (token_hash && type === 'recovery') {
+      const { error } = await client.auth.verifyOtp({ token_hash, type: 'recovery' });
       if (error) {
         document.getElementById('mensaje').textContent = 'El link expiró. Pedí uno nuevo desde la app.';
         document.getElementById('mensaje').className = 'mensaje error';
         document.getElementById('btn-guardar').disabled = true;
       }
     } else {
-      document.getElementById('mensaje').textContent = 'Link inválido. Pedí un nuevo email desde la app.';
-      document.getElementById('mensaje').className = 'mensaje error';
-      document.getElementById('btn-guardar').disabled = true;
+      // Intentar también con hash por compatibilidad
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      const access_token = hashParams.get('access_token');
+      const refresh_token = hashParams.get('refresh_token');
+      if (access_token && refresh_token) {
+        const { error } = await client.auth.setSession({ access_token, refresh_token });
+        if (error) {
+          document.getElementById('mensaje').textContent = 'El link expiró. Pedí uno nuevo desde la app.';
+          document.getElementById('mensaje').className = 'mensaje error';
+          document.getElementById('btn-guardar').disabled = true;
+        }
+      } else {
+        document.getElementById('mensaje').textContent = 'Link inválido. Pedí un nuevo email desde la app.';
+        document.getElementById('mensaje').className = 'mensaje error';
+        document.getElementById('btn-guardar').disabled = true;
+      }
     }
   }
 
-  iniciarSesionDesdeHash();
+  iniciarSesion();
 
   function toggleVer(inputId, btn) {
     const input = document.getElementById(inputId);
