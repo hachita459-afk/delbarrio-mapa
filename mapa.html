@@ -147,7 +147,7 @@
     .modal-links a { font-size: 13px; color: #2a9d8f; text-decoration: none; }
     .modal-cerrar { background: none; border: none; color: #aaa; font-size: 14px; cursor: pointer; padding: 8px; }
 
-    #btn-ubicacion {
+    #btn-ubicacion-web {
       position: absolute;
       bottom: 32px;
       right: 16px;
@@ -164,8 +164,8 @@
       align-items: center;
       justify-content: center;
     }
-    #btn-ubicacion.buscando { background: #f0faf9; }
-    #btn-ubicacion:active { background: #e0f2f1; }
+    #btn-ubicacion-web.buscando { background: #f0faf9; }
+    #btn-ubicacion-web:active { background: #e0f2f1; }
 
     @keyframes pulse {
       0%{transform:scale(1);opacity:0.8}
@@ -203,7 +203,8 @@
   <div id="mapa"></div>
   <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
   <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
-  <button id="btn-ubicacion" onclick="centrarEnMi()" title="Mi ubicación">📍</button>
+  <!-- Solo visible en versión web, no en app -->
+  <button id="btn-ubicacion-web" onclick="centrarEnMi()" title="Mi ubicación">📍</button>
 </div>
 
 <div id="lista-wrap">
@@ -239,10 +240,12 @@
 <script>
   const urlParams = new URLSearchParams(window.location.search);
   const esApp = urlParams.has('locales');
+
   if (esApp) {
     document.querySelector('header').style.display = 'none';
     document.querySelector('.subheader').style.display = 'none';
     document.getElementById('mapa').style.height = '100vh';
+    document.getElementById('btn-ubicacion-web').style.display = 'none';
   }
 
   const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
@@ -493,17 +496,9 @@
   function cerrarContacto() { document.getElementById('overlay-contacto').classList.remove('visible'); }
 
   function centrarEnMi() {
-    const btn = document.getElementById('btn-ubicacion');
+    const btn = document.getElementById('btn-ubicacion-web');
     btn.classList.add('buscando');
     btn.textContent = '⏳';
-
-    if (esApp) {
-      // Pedir ubicación a React Native
-      window.ReactNativeWebView.postMessage('pedir_ubicacion');
-      // La respuesta llega via window.recibirUbicacion()
-      return;
-    }
-
     if (!navigator.geolocation) {
       btn.classList.remove('buscando');
       btn.textContent = '📍';
@@ -525,15 +520,6 @@
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
-
-  // Llamada por React Native con la ubicación actual
-  window.recibirUbicacion = function(lat, lng) {
-    const btn = document.getElementById('btn-ubicacion');
-    btn.classList.remove('buscando');
-    btn.textContent = '📍';
-    mapa.setView([lat, lng], 16);
-    pintarUsuario(lat, lng);
-  };
 
   cargar();
 </script>
