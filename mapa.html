@@ -152,6 +152,12 @@
       50%{transform:scale(1.5);opacity:0.3}
       100%{transform:scale(1);opacity:0.8}
     }
+
+    /* Texto grande — solo activo en app con zoom=2 */
+    body.texto-grande .card-nombre { font-size: 22px; }
+    body.texto-grande .card-categoria { font-size: 18px; }
+    body.texto-grande .filtro-pill { font-size: 17px; }
+    body.texto-grande .modal-pill { font-size: 17px; }
   </style>
 </head>
 <body>
@@ -218,11 +224,17 @@
 <script>
   const urlParams = new URLSearchParams(window.location.search);
   const esApp = urlParams.has('locales');
+  const zoom = parseInt(urlParams.get('zoom') || '1');
 
   if (esApp) {
     document.querySelector('header').style.display = 'none';
     document.querySelector('.subheader').style.display = 'none';
     document.getElementById('mapa').style.height = '100vh';
+    document.getElementById('btn-filtro-mapa').style.display = 'none';
+    document.getElementById('btn-favoritos-mapa').style.display = 'none';
+    if (zoom === 2) {
+      document.body.classList.add('texto-grande');
+    }
   }
 
   const SUPABASE_URL = 'https://dlvtgrjmeyuxgojryafr.supabase.co';
@@ -240,10 +252,9 @@
   let mapa;
   let markerUsuario = null;
 
-  // CAMBIO 1: variable en memoria para visitados en modo app
+  // Visitados en memoria para modo app — evita caché de localStorage
   let visitadosApp = new Set();
 
-  // CAMBIO 2: getVisitados usa la variable en memoria cuando es app
   function getVisitados() {
     if (esApp) return visitadosApp;
     try { return new Set(JSON.parse(localStorage.getItem('locales_visitados') || '[]')); } catch { return new Set(); }
@@ -283,7 +294,7 @@
         locales = JSON.parse(decodeURIComponent(localesParam));
         const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
 
-        // CAMBIO 3: guardar en memoria, no en localStorage
+        // Guardar en memoria, no en localStorage
         visitadosApp = new Set(visitadosArr.map(String));
 
         mapa.setView([lat, lng], 14);
@@ -338,6 +349,10 @@
     markers.forEach(m => mapa.removeLayer(m));
     markers = [];
     const visitados = getVisitados();
+    const textoGrande = zoom === 2;
+    const fontSize = textoGrande ? '18px' : '15px';
+    const fontSizeSmall = textoGrande ? '16px' : '14px';
+    const btnFontSize = textoGrande ? '16px' : '14px';
 
     localesFiltrados().forEach(l => {
       if (!l.lat || !l.lng) return;
@@ -358,17 +373,17 @@
       if (esApp) {
         marker.bindPopup(
           '<div style="text-align:center;padding:8px;min-width:180px;">' +
-            '<strong style="font-size:15px;">' + l.nombre + '</strong><br>' +
-            '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
-            '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" style="background:#2a9d8f;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:14px;cursor:pointer;">Ver local</button>' +
+            '<strong style="font-size:' + fontSize + ';">' + l.nombre + '</strong><br>' +
+            '<small style="color:#888;font-size:' + fontSizeSmall + ';">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" style="background:#2a9d8f;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:' + btnFontSize + ';cursor:pointer;">Ver local</button>' +
           '</div>'
         );
       } else {
         marker.bindPopup(
           '<div style="text-align:center;padding:8px;min-width:180px;">' +
-            '<strong style="font-size:14px;">' + l.nombre + '</strong><br>' +
-            '<small style="color:#888;">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
-            '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:14px;">Ver local</a>' +
+            '<strong style="font-size:' + fontSize + ';">' + l.nombre + '</strong><br>' +
+            '<small style="color:#888;font-size:' + fontSizeSmall + ';">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:' + btnFontSize + ';">Ver local</a>' +
           '</div>'
         );
       }
