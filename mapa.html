@@ -211,7 +211,6 @@
   <div id="mapa"></div>
   <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
   <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
-  <!-- Solo visible en versión web, no en app -->
   <button id="btn-ubicacion-web" onclick="centrarEnMi()" title="Mi ubicación">📍</button>
 </div>
 
@@ -255,6 +254,8 @@
     document.querySelector('.subheader').style.display = 'none';
     document.getElementById('mapa').style.height = '100vh';
     document.getElementById('btn-ubicacion-web').style.display = 'none';
+    document.getElementById('btn-filtro-mapa').style.display = 'none';
+    document.getElementById('btn-favoritos-mapa').style.display = 'none';
     if (zoom === 2) {
       document.body.classList.add('texto-grande');
     }
