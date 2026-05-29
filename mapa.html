@@ -276,7 +276,11 @@
   let mapa;
   let markerUsuario = null;
 
+  // Variable global para visitados en modo app — no usa localStorage
+  let visitadosApp = new Set();
+
   function getVisitados() {
+    if (esApp) return visitadosApp;
     try { return new Set(JSON.parse(localStorage.getItem('locales_visitados') || '[]')); } catch { return new Set(); }
   }
   function getFavoritos() {
@@ -313,7 +317,9 @@
 
         locales = JSON.parse(decodeURIComponent(localesParam));
         const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
-        localStorage.setItem('locales_visitados', JSON.stringify(visitadosArr));
+
+        // Usar variable en memoria, no localStorage
+        visitadosApp = new Set(visitadosArr.map(String));
 
         mapa.setView([lat, lng], 14);
         pintarUsuario(lat, lng);
