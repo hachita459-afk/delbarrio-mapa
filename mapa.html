@@ -109,6 +109,9 @@
     .card-nombre { font-size: 17px; font-weight: 600; color: #1a1a2e; flex: 1; }
     .card-fav { font-size: 18px; padding: 4px; }
     .card-categoria { font-size: 14px; color: #888; }
+    .card-estado { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .estado-abierto { color: #2d6a4f; }
+    .estado-cerrado { color: #e63939; }
 
     .sin-locales { text-align: center; padding: 60px 20px; color: #aaa; font-size: 15px; }
 
@@ -156,6 +159,7 @@
     /* Texto grande — solo activo en app con zoom=2 */
     body.texto-grande .card-nombre { font-size: 22px; }
     body.texto-grande .card-categoria { font-size: 18px; }
+    body.texto-grande .card-estado { font-size: 17px; }
     body.texto-grande .filtro-pill { font-size: 17px; }
     body.texto-grande .modal-pill { font-size: 17px; }
   </style>
@@ -241,6 +245,29 @@
   const SUPABASE_KEY = 'sb_publishable_R2C9F9NOjCNx765jp90DbA_hr70zqPT';
   const { createClient } = supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const DIAS_KEY = ['dom','lun','mar','mie','jue','vie','sab'];
+
+  // Devuelve: { abierto: true/false } o null si el local no cargó horario detallado
+  function estadoLocal(l) {
+    if (l.cerrado_manual === true) return { abierto: false };
+    const dia = DIAS_KEY[new Date().getDay()];
+    const horas = l[dia + '_horas'];
+    if (!horas) return null; // sin horario detallado: no mostramos badge
+    const ahora = new Date();
+    const minActual = ahora.getHours() * 60 + ahora.getMinutes();
+    const franjaActual = Math.floor(minActual / 30) * 30;
+    const abiertas = String(horas).split(',').map(Number);
+    return { abierto: abiertas.includes(franjaActual) };
+  }
+
+  function badgeEstadoHtml(l, fontSize) {
+    const est = estadoLocal(l);
+    if (est === null) return '';
+    return est.abierto
+      ? '<div style="color:#2d6a4f;font-weight:700;font-size:' + fontSize + ';margin-bottom:6px;">🟢 Abierto ahora</div>'
+      : '<div style="color:#e63939;font-weight:700;font-size:' + fontSize + ';margin-bottom:6px;">🔴 Cerrado ahora</div>';
+  }
 
   let CATEGORIAS = ['Todos'];
   let locales = [];
@@ -353,6 +380,7 @@
     const fontSize = textoGrande ? '18px' : '15px';
     const fontSizeSmall = textoGrande ? '16px' : '14px';
     const btnFontSize = textoGrande ? '16px' : '14px';
+    const estadoFontSize = textoGrande ? '16px' : '13px';
 
     localesFiltrados().forEach(l => {
       if (!l.lat || !l.lng) return;
@@ -370,11 +398,14 @@
         icon: L.divIcon({ html: pinHtml, iconSize: [14,14], iconAnchor: [7,7], className: '' })
       }).addTo(mapa);
 
+      const badge = badgeEstadoHtml(l, estadoFontSize);
+
       if (esApp) {
         marker.bindPopup(
           '<div style="text-align:center;padding:8px;min-width:180px;">' +
             '<strong style="font-size:' + fontSize + ';">' + l.nombre + '</strong><br>' +
             '<small style="color:#888;font-size:' + fontSizeSmall + ';">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            badge +
             '<button onclick="window.ReactNativeWebView.postMessage(\'' + l.id + '\')" style="background:#2a9d8f;color:white;border:none;padding:10px 0;border-radius:8px;width:100%;font-weight:600;font-size:' + btnFontSize + ';cursor:pointer;">Ver local</button>' +
           '</div>'
         );
@@ -383,6 +414,7 @@
           '<div style="text-align:center;padding:8px;min-width:180px;">' +
             '<strong style="font-size:' + fontSize + ';">' + l.nombre + '</strong><br>' +
             '<small style="color:#888;font-size:' + fontSizeSmall + ';">' + (Array.isArray(l.categoria) ? l.categoria[0] : l.categoria) + '</small><br><br>' +
+            badge +
             '<a href="local.html?id=' + l.id + '" style="background:' + color + ';color:white;text-decoration:none;padding:10px 0;border-radius:8px;display:block;font-weight:600;font-size:' + btnFontSize + ';">Ver local</a>' +
           '</div>'
         );
@@ -416,12 +448,20 @@
     cont.innerHTML = items.map(l => {
       const esFav = favoritos.has(String(l.id));
       const cats = Array.isArray(l.categoria) ? l.categoria.join(' · ') : (l.categoria || '');
+      const est = estadoLocal(l);
+      let estadoHtml = '';
+      if (est !== null) {
+        estadoHtml = est.abierto
+          ? '<div class="card-estado estado-abierto">🟢 Abierto ahora</div>'
+          : '<div class="card-estado estado-cerrado">🔴 Cerrado ahora</div>';
+      }
       return `<a class="card" href="local.html?id=${l.id}">
         <div class="card-header">
           <span class="card-nombre">${l.nombre}</span>
           <span class="card-fav" onclick="event.preventDefault();toggleFavoritoLocal('${l.id}')">${esFav ? '❤️' : '🤍'}</span>
         </div>
         <div class="card-categoria">${cats} · ${l.direccion || ''}</div>
+        ${estadoHtml}
       </a>`;
     }).join('');
   }
