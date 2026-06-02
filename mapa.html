@@ -248,8 +248,15 @@
 
   const DIAS_KEY = ['dom','lun','mar','mie','jue','vie','sab'];
 
-  // Devuelve: { abierto: true/false } o null si el local no cargó horario detallado
+  // Devuelve: { abierto: true/false } o null si el local no cargó horario detallado.
+  // En modo app, el estado viene precalculado en l.abierto (para no inflar la URL con
+  // las 7 columnas de franjas). En modo web, se calcula acá desde las franjas crudas.
   function estadoLocal(l) {
+    // Modo app: estado ya calculado en React Native
+    if (l.abierto !== undefined) {
+      return l.abierto === null ? null : { abierto: l.abierto === true };
+    }
+    // Modo web: calcular desde las franjas crudas
     if (l.cerrado_manual === true) return { abierto: false };
     const dia = DIAS_KEY[new Date().getDay()];
     const horas = l[dia + '_horas'];
