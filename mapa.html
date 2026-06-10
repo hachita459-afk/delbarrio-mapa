@@ -75,12 +75,19 @@
     }
     #btn-filtro-mapa.activo { background: #2a9d8f; color: #fff; }
     #btn-favoritos-mapa {
-      position: absolute; top: 16px; right: 16px; z-index: 500;
+      position: absolute; top: 64px; right: 16px; z-index: 500;
       background: #fff; border: none; padding: 8px 16px;
       border-radius: 20px; font-size: 14px; font-weight: 600;
       cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     #btn-favoritos-mapa.activo { background: #e63939; color: #fff; }
+    #btn-comunidad-mapa {
+      position: absolute; top: 16px; right: 16px; z-index: 500;
+      background: #25D366; color: #fff; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      text-decoration: none; display: inline-block;
+    }
 
     #lista-wrap { display: none; }
     .filtro-scroll {
@@ -192,6 +199,7 @@
 <div id="mapa-wrap">
   <div id="mapa"></div>
   <button id="btn-filtro-mapa" onclick="abrirFiltro()">⚙ Filtrar</button>
+  <a id="btn-comunidad-mapa" href="https://whatsapp.com/channel/0029Vb7fAwLEquiQ4giw2p3O" target="_blank" rel="noopener">Comunidad DB</a>
   <button id="btn-favoritos-mapa" onclick="toggleFavoritos()">🤍 Favoritos</button>
 </div>
 
@@ -248,19 +256,14 @@
 
   const DIAS_KEY = ['dom','lun','mar','mie','jue','vie','sab'];
 
-  // Devuelve: { abierto: true/false } o null si el local no cargó horario detallado.
-  // En modo app, el estado viene precalculado en l.abierto (para no inflar la URL con
-  // las 7 columnas de franjas). En modo web, se calcula acá desde las franjas crudas.
   function estadoLocal(l) {
-    // Modo app: estado ya calculado en React Native
     if (l.abierto !== undefined) {
       return l.abierto === null ? null : { abierto: l.abierto === true };
     }
-    // Modo web: calcular desde las franjas crudas
     if (l.cerrado_manual === true) return { abierto: false };
     const dia = DIAS_KEY[new Date().getDay()];
     const horas = l[dia + '_horas'];
-    if (!horas) return null; // sin horario detallado: no mostramos badge
+    if (!horas) return null;
     const ahora = new Date();
     const minActual = ahora.getHours() * 60 + ahora.getMinutes();
     const franjaActual = Math.floor(minActual / 30) * 30;
@@ -286,7 +289,6 @@
   let mapa;
   let markerUsuario = null;
 
-  // Visitados en memoria para modo app — evita caché de localStorage
   let visitadosApp = new Set();
 
   function getVisitados() {
@@ -328,7 +330,6 @@
         locales = JSON.parse(decodeURIComponent(localesParam));
         const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
 
-        // Guardar en memoria, no en localStorage
         visitadosApp = new Set(visitadosArr.map(String));
 
         mapa.setView([lat, lng], 14);
