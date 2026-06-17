@@ -11,7 +11,6 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f8f8; }
 
-    
     header {
       background: #2a9d8f;
       padding: 0 16px;
@@ -236,7 +235,8 @@
 
 <script>
   const urlParams = new URLSearchParams(window.location.search);
-  const esApp = urlParams.has('locales');
+  // Modo app: la app pasa lat/lng en la URL (antes pasaba locales=..., lo que causaba URL too long)
+  const esApp = urlParams.has('lat');
   const zoom = parseInt(urlParams.get('zoom') || '1');
 
   if (esApp) {
@@ -321,34 +321,32 @@
   }
 
   async function cargar() {
+    // Siempre fetchea locales de Supabase (resuelve el bug de URL too long)
+    const [{ data: cats }, { data }, { data: bloqueadas }] = await Promise.all([
+      db.from('categorias').select('nombre').order('orden'),
+      db.from('locales').select('id,lat,lng,nombre,categoria,cerrado_manual,tiene_novedad').eq('activo', true).eq('suspendido', false),
+      db.from('direcciones_bloqueadas').select('local_id')
+    ]);
+
+    if (cats) CATEGORIAS = ['Todos', ...cats.map(c => c.nombre)];
+
+    const idsBloqueados = new Set((bloqueadas || []).map(b => String(b.local_id)));
+    locales = (data || []).filter(l => !idsBloqueados.has(String(l.id)));
+
     if (esApp) {
-      try {
-        const localesParam = urlParams.get('locales');
-        const lat = parseFloat(urlParams.get('lat') || '-34.6037');
-        const lng = parseFloat(urlParams.get('lng') || '-58.3816');
-        const visitadosParam = urlParams.get('visitados');
-
-        locales = JSON.parse(decodeURIComponent(localesParam));
-        const visitadosArr = visitadosParam ? JSON.parse(decodeURIComponent(visitadosParam)) : [];
-
-        visitadosApp = new Set(visitadosArr.map(String));
-
-        mapa.setView([lat, lng], 14);
-        pintarUsuario(lat, lng);
-        renderMapa();
-        return;
-      } catch (e) {
-        console.error('Error parsing app params:', e);
-      }
+      const lat = parseFloat(urlParams.get('lat') || '-34.6037');
+      const lng = parseFloat(urlParams.get('lng') || '-58.3816');
+      const visitadosParam = urlParams.get('visitados');
+      visitadosApp = visitadosParam
+        ? new Set(JSON.parse(decodeURIComponent(visitadosParam)).map(String))
+        : new Set();
+      mapa.setView([lat, lng], 14);
+      pintarUsuario(lat, lng);
+      renderMapa();
+      return;
     }
 
-    const [{ data: cats }, { data }] = await Promise.all([
-      db.from('categorias').select('nombre').order('orden'),
-      db.from('locales').select('*').eq('activo', true).eq('suspendido', false)
-    ]);
-    if (cats) CATEGORIAS = ['Todos', ...cats.map(c => c.nombre)];
-    locales = data || [];
-
+    // Modo web: centrar en promedio de locales
     const conCoords = locales.filter(l => l.lat && l.lng);
     if (conCoords.length > 0) {
       const avgLat = conCoords.reduce((s, l) => s + parseFloat(l.lat), 0) / conCoords.length;
@@ -542,6 +540,12 @@
   function cerrarFiltro() { document.getElementById('overlay-filtro').classList.remove('visible'); }
   function abrirContacto() { document.getElementById('overlay-contacto').classList.add('visible'); }
   function cerrarContacto() { document.getElementById('overlay-contacto').classList.remove('visible'); }
+
+  // Recibir ubicación del usuario desde la app vía injectJavaScript
+  window.recibirUbicacion = function(lat, lng) {
+    pintarUsuario(lat, lng);
+    mapa.setView([lat, lng], 14);
+  };
 
   cargar();
 </script>
